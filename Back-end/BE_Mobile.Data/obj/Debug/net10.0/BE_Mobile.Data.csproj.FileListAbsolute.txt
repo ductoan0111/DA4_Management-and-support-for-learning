@@ -1,0 +1,16 @@
+D:\Management-and-support-for-learning_Mobile\BE_Mobile\BE_Mobile.Data\bin\Debug\net10.0\BE_Mobile.Data.deps.json
+D:\Management-and-support-for-learning_Mobile\BE_Mobile\BE_Mobile.Data\bin\Debug\net10.0\BE_Mobile.Data.dll
+D:\Management-and-support-for-learning_Mobile\BE_Mobile\BE_Mobile.Data\bin\Debug\net10.0\BE_Mobile.Data.pdb
+D:\Management-and-support-for-learning_Mobile\BE_Mobile\BE_Mobile.Data\obj\Debug\net10.0\BE_Mobile.Data.csproj.AssemblyReference.cache
+D:\Management-and-support-for-learning_Mobile\BE_Mobile\BE_Mobile.Data\obj\Debug\net10.0\BE_Mobile.Data.GeneratedMSBuildEditorConfig.editorconfig
+D:\Management-and-support-for-learning_Mobile\BE_Mobile\BE_Mobile.Data\obj\Debug\net10.0\BE_Mobile.Data.AssemblyInfoInputs.cache
+D:\Management-and-support-for-learning_Mobile\BE_Mobile\BE_Mobile.Data\obj\Debug\net10.0\BE_Mobile.Data.AssemblyInfo.cs
+D:\Management-and-support-for-learning_Mobile\BE_Mobile\BE_Mobile.Data\obj\Debug\net10.0\BE_Mobile.Data.csproj.CoreCompileInputs.cache
+D:\Management-and-support-for-learning_Mobile\BE_Mobile\BE_Mobile.Data\obj\Debug\net10.0\BE_Mobile.Data.sourcelink.json
+D:\Management-and-support-for-learning_Mobile\BE_Mobile\BE_Mobile.Data\obj\Debug\net10.0\BE_Mobile.Data.dll
+D:\Management-and-support-for-learning_Mobile\BE_Mobile\BE_Mobile.Data\obj\Debug\net10.0\refint\BE_Mobile.Data.dll
+D:\Management-and-support-for-learning_Mobile\BE_Mobile\BE_Mobile.Data\obj\Debug\net10.0\BE_Mobile.Data.pdb
+D:\Management-and-support-for-learning_Mobile\BE_Mobile\BE_Mobile.Data\obj\Debug\net10.0\ref\BE_Mobile.Data.dll
+D:\Management-and-support-for-learning_Mobile\artifacts\verify-build\BE_Mobile.Data.deps.json
+D:\Management-and-support-for-learning_Mobile\artifacts\verify-build\BE_Mobile.Data.dll
+D:\Management-and-support-for-learning_Mobile\artifacts\verify-build\BE_Mobile.Data.pdb
