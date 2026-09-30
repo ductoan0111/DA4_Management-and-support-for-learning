@@ -1,0 +1,125 @@
+# ============================================================
+#  .gitignore – DA4 Management and Support for Learning
+#  Backend: ASP.NET Core (.NET 10)
+#  Frontend: React + TypeScript (Vite)
+# ============================================================
+
+# ─── VISUAL STUDIO ───────────────────────────────────────────
+.vs/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.vcxproj.filters
+*.VC.db
+*.VC.VC.opendb
+DocumentLayout.json
+DocumentLayout.backup.json
+*.backup.json
+applicationhost.config
+
+# ─── .NET BUILD OUTPUT ───────────────────────────────────────
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+*.dll
+*.pdb
+*.exe
+*.cache
+*.ilk
+*.map
+*.exp
+*.lib
+*.rsp
+*.pch
+*.nupkg
+*.snupkg
+*.user
+publish/
+PublishOutput/
+
+# ─── .NET RUNTIME / SDK ──────────────────────────────────────
+project.lock.json
+project.fragment.lock.json
+artifacts/
+*.nuget.props
+*.nuget.targets
+*.FileContentIndex
+*.dswa.cache.json
+rjsmrazor.*.json
+
+# ─── ASP.NET CORE ────────────────────────────────────────────
+# Không commit appsettings chứa thông tin nhạy cảm
+# appsettings.json   ← GIỮ LẠI (chứa cấu hình chung)
+appsettings.*.json  # Nếu muốn bỏ qua tất cả môi trường
+!appsettings.json
+!appsettings.Development.json
+
+# Secrets
+**/secrets.json
+**/usersecrets.json
+
+# ─── ENTITY FRAMEWORK MIGRATIONS BUILD ───────────────────────
+# Giữ lại thư mục Migrations nhưng bỏ qua snapshot tạm
+*.mdf
+*.ldf
+*.ndf
+
+# ─── NODE / FRONTEND ─────────────────────────────────────────
+node_modules/
+.pnp
+.pnp.js
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Vite build output
+dist/
+dist-ssr/
+*.local
+
+# TypeScript cache
+*.tsbuildinfo
+
+# ─── EDITOR / IDE ────────────────────────────────────────────
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ─── OS ──────────────────────────────────────────────────────
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# ─── TESTING ─────────────────────────────────────────────────
+TestResults/
+coverage/
+*.coverage
+*.coveragexml
+lcov.info
+
+# ─── DOCKER ──────────────────────────────────────────────────
+.dockerignore
+docker-compose.override.yml
+
+# ─── MISC ────────────────────────────────────────────────────
+*.tmp
+*.temp
+*.bak
+*.orig
+*.rej
