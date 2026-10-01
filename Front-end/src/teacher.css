@@ -1,0 +1,104 @@
+/* ─── Teacher Portal CSS ────────────────────────────────────────────────────── */
+
+/* Shell */
+.teacher-shell { display: flex; min-height: 100vh; }
+
+/* Sidebar */
+.teacher-sidebar {
+  width: 240px; background: linear-gradient(180deg, #1e3a5f 0%, #0f2647 100%);
+  color: #cbd5e1; display: flex; flex-direction: column;
+  position: fixed; height: 100vh; z-index: 100;
+}
+.teacher-sidebar .sidebar-logo { padding: 1.25rem 1.5rem; border-bottom: 1px solid rgba(255,255,255,.1); }
+.teacher-sidebar .sidebar-logo h2 { color: #fff; font-size: 1rem; font-weight: 700; margin-bottom: 0.125rem; }
+.teacher-sidebar .sidebar-logo p { font-size: 0.75rem; color: #94a3b8; }
+
+.teacher-sidebar .sidebar-nav { flex: 1; padding: 0.75rem 0; overflow-y: auto; }
+.teacher-sidebar .nav-section { padding: 0.5rem 1.5rem 0.25rem; font-size: 0.65rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: #475569; margin-top: 0.5rem; }
+.teacher-sidebar .nav-item { display: flex; align-items: center; gap: 0.625rem; padding: 0.65rem 1.5rem; color: #94a3b8; text-decoration: none; transition: all 0.15s; font-size: 0.875rem; cursor: pointer; border: none; background: none; width: 100%; text-align: left; }
+.teacher-sidebar .nav-item:hover { color: #fff; background: rgba(255,255,255,.05); }
+.teacher-sidebar .nav-item.active { color: #fff; background: #2563eb; border-radius: 0; }
+.teacher-sidebar .nav-item .icon { font-size: 1rem; width: 1.25rem; text-align: center; flex-shrink: 0; }
+
+.teacher-sidebar .sidebar-user { padding: 1rem 1.5rem; border-top: 1px solid rgba(255,255,255,.1); display: flex; align-items: center; gap: 0.75rem; }
+.teacher-sidebar .avatar { width: 36px; height: 36px; border-radius: 50%; background: #2563eb; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 0.9rem; flex-shrink: 0; }
+.teacher-sidebar .info { flex: 1; min-width: 0; }
+.teacher-sidebar .name { font-size: 0.8rem; color: #e2e8f0; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.teacher-sidebar .role { font-size: 0.7rem; color: #64748b; }
+
+/* Main */
+.teacher-main { margin-left: 240px; flex: 1; display: flex; flex-direction: column; min-height: 100vh; background: #f8fafc; }
+.teacher-topbar { background: #fff; border-bottom: 1px solid #e2e8f0; padding: 0 2rem; height: 56px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 50; }
+.teacher-topbar h1 { font-size: 1.1rem; font-weight: 700; color: #1e293b; }
+.teacher-content { padding: 1.5rem 2rem; flex: 1; }
+
+/* Section Cards */
+.section-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1rem; }
+.section-card { background: #fff; border-radius: 12px; padding: 1.25rem; box-shadow: 0 1px 4px rgba(0,0,0,.08); cursor: pointer; transition: all 0.2s; border: 2px solid transparent; }
+.section-card:hover { border-color: #2563eb; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(37,99,235,.15); }
+.section-card.selected { border-color: #2563eb; background: #eff6ff; }
+.section-card .section-code { font-size: 0.8rem; font-weight: 700; color: #2563eb; margin-bottom: 0.25rem; }
+.section-card .section-name { font-size: 1rem; font-weight: 700; color: #1e293b; margin-bottom: 0.5rem; }
+.section-card .section-meta { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.section-card .meta-tag { background: #f1f5f9; color: #64748b; font-size: 0.7rem; padding: 0.2rem 0.5rem; border-radius: 999px; }
+.section-card .meta-tag.primary { background: #dbeafe; color: #1d4ed8; }
+.section-card .section-footer { display: flex; align-items: center; justify-content: space-between; margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid #f1f5f9; }
+.section-card .enrolled-badge { font-size: 0.75rem; color: #64748b; }
+
+/* Section Detail Tabs */
+.section-detail { background: #fff; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+.detail-tabs { display: flex; gap: 0; border-bottom: 1px solid #e2e8f0; padding: 0 1.5rem; overflow-x: auto; }
+.detail-tab { padding: 0.875rem 1rem; border: none; background: none; cursor: pointer; font-size: 0.875rem; font-weight: 500; color: #64748b; display: flex; align-items: center; gap: 0.375rem; white-space: nowrap; border-bottom: 2px solid transparent; margin-bottom: -1px; transition: all 0.15s; }
+.detail-tab:hover { color: #1e293b; }
+.detail-tab.active { color: #2563eb; border-bottom-color: #2563eb; font-weight: 600; }
+.detail-content { padding: 1.5rem; }
+
+/* Section header breadcrumb */
+.section-header { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.5rem; }
+.section-header .back-btn { background: #f1f5f9; border: none; border-radius: 8px; padding: 0.5rem 0.75rem; cursor: pointer; color: #475569; font-size: 0.875rem; display: flex; align-items: center; gap: 0.375rem; }
+.section-header .back-btn:hover { background: #e2e8f0; }
+.section-header h2 { font-size: 1.1rem; font-weight: 700; color: #1e293b; }
+.section-header .badge { margin-left: auto; }
+
+/* Schedule */
+.schedule-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 0.5rem; }
+.schedule-day { font-size: 0.75rem; font-weight: 700; color: #64748b; text-align: center; padding: 0.25rem; }
+.schedule-slot { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 0.5rem; font-size: 0.75rem; }
+.schedule-slot .slot-time { font-weight: 700; color: #1d4ed8; }
+.schedule-slot .slot-room { color: #475569; margin-top: 0.125rem; }
+
+/* Grade table */
+.grade-table { overflow-x: auto; }
+.grade-table table { min-width: 600px; }
+.grade-input { width: 80px; padding: 0.3rem 0.5rem; border: 1px solid #d1d5db; border-radius: 4px; font-size: 0.8rem; text-align: center; }
+.grade-input:focus { outline: none; border-color: #2563eb; }
+.grade-total { font-weight: 700; color: #1e293b; }
+.grade-letter { font-weight: 700; font-size: 1.1rem; }
+.grade-A  { color: #16a34a; }
+.grade-Bp { color: #2563eb; }
+.grade-B  { color: #0284c7; }
+.grade-Cp { color: #7c3aed; }
+.grade-C  { color: #ca8a04; }
+.grade-Dp { color: #ea580c; }
+.grade-D  { color: #dc2626; }
+.grade-F  { color: #991b1b; }
+
+/* Progress bar */
+.weight-bar { height: 8px; background: #e2e8f0; border-radius: 999px; overflow: hidden; margin-top: 0.25rem; }
+.weight-fill { height: 100%; border-radius: 999px; transition: width 0.3s; }
+.weight-ok   { background: #16a34a; }
+.weight-warn { background: #ca8a04; }
+.weight-over { background: #dc2626; }
+
+/* Submission status */
+.sub-pending  { background: #fef9c3; color: #a16207; }
+.sub-returned { background: #dbeafe; color: #1d4ed8; }
+.sub-graded   { background: #dcfce7; color: #15803d; }
+
+/* Teacher login */
+.teacher-login { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #0f2647 0%, #1e3a5f 50%, #2563eb 100%); padding: 1rem; }
+.teacher-login-card { background: #fff; border-radius: 16px; box-shadow: 0 24px 64px rgba(0,0,0,.3); padding: 2.5rem; width: 100%; max-width: 420px; }
+.teacher-login-header { text-align: center; margin-bottom: 2rem; }
+.teacher-login-header .icon { font-size: 3.5rem; margin-bottom: 0.75rem; }
+.teacher-login-header h1 { font-size: 1.5rem; font-weight: 800; color: #1e293b; margin: 0 0 0.25rem; }
+.teacher-login-header p { color: #64748b; font-size: 0.875rem; margin: 0; }
