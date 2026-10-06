@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ApiError } from '../../api/client';
+import { getApiErrorMessage } from '../../api/client';
 import CrudPage from '../../components/CrudPage';
 import { teachersApi, departmentsApi, usersApi } from '../../api/services';
 import type { AdminTeacherDto, AdminDepartmentDto, SaveAdminTeacherRequest } from '../../api/types';
@@ -46,7 +46,7 @@ export default function TeachersPage() {
       else await teachersApi.create(form);
       setModal(false);
     } catch (e) {
-      setFormError(e instanceof ApiError ? (e.data as { message?: string })?.message ?? `Lỗi ${e.status}` : 'Lỗi');
+      setFormError(getApiErrorMessage(e));
     } finally { setSaving(false); }
   };
 
@@ -65,7 +65,7 @@ export default function TeachersPage() {
         filterParams={filterParams}
         columns={[
           { key: 'teacherCode', header: 'Mã GV' },
-          { key: 'userId', header: 'User ID' },
+          { key: 'fullName', header: 'Họ tên' },
           { key: 'departmentId', header: 'Khoa', render: r => <span>{deptName(r.departmentId as number)}</span> },
           { key: 'academicTitle', header: 'Học hàm/vị' },
           { key: 'specialization', header: 'Chuyên ngành' },
@@ -99,7 +99,7 @@ export default function TeachersPage() {
               <div className="form-group">
                 <label>Tài khoản (TEACHER role) *</label>
                 {editing ? (
-                  <input value={`User #${form.userId}`} disabled style={{ background: '#f8fafc' }} />
+                  <input value={`${editing.fullName} (User #${form.userId})`} disabled style={{ background: '#f8fafc' }} />
                 ) : (<>
                   <input placeholder="Tìm theo username hoặc họ tên…" value={userSearch} onChange={e => setUserSearch(e.target.value)} />
                   <select value={form.userId} onChange={e => setForm(f => ({ ...f, userId: Number(e.target.value) }))} style={{ marginTop: 4 }}>
