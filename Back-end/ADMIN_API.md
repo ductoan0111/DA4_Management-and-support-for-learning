@@ -31,7 +31,7 @@ quyền được đọc lại từ database mỗi request. Khi triển khai nhi�
 chung kho Data Protection keys. Login giới hạn 10 request/phút/IP.
 
 API trả `401` khi chưa đăng nhập/token hết hạn và `403` khi không có quyền ADMIN.
-Frontend admin hiện tại cần bổ sung đăng nhập và gửi Bearer token, kể cả API sinh viên cũ.
+Frontend admin đã có trang đăng nhập, lưu phiên và tự động gửi Bearer token cho các API admin.
 CORS development cho phép `http://localhost:5173` và `http://localhost:5174`;
 cấu hình môi trường khác qua `Cors:AllowedOrigins`.
 
@@ -69,6 +69,10 @@ PUT nhận đầy đủ dữ liệu của tài nguyên, trừ API cập nhật s
 | GET | `/api/admin/course-sections/{sectionId}/students` | Sinh viên của lớp, có phân trang, gồm cả đăng ký đã hủy |
 | PUT | `/api/admin/course-sections/{sectionId}/students/{studentId}` | Đăng ký/cập nhật, body `{ "status": 1 }` |
 | DELETE | `/api/admin/course-sections/{sectionId}/students/{studentId}` | Hủy đăng ký, giữ lại bản ghi và điểm |
+| GET/POST | `/api/admin/course-sections/{sectionId}/schedules` | Danh sách/thêm lịch học |
+| PUT/DELETE | `/api/admin/course-sections/{sectionId}/schedules/{scheduleId}` | Sửa/xóa lịch học |
+| GET/POST | `/api/admin/course-sections/{sectionId}/exams` | Danh sách/thêm lịch thi |
+| PUT/DELETE | `/api/admin/course-sections/{sectionId}/exams/{examId}` | Sửa/xóa lịch thi |
 
 Danh sách users hỗ trợ `search`, `roleId`, `isActive`, `page`, `pageSize`.
 Không xóa cứng tài khoản; dùng `isActive = false`. RoleId phải lấy từ API roles,
@@ -103,6 +107,8 @@ Giảng viên: 0 ngưng công tác, 1 đang công tác. Số tín chỉ từ 1 �
 
 - Đặt học kỳ hiện tại sẽ bỏ cờ hiện tại của các học kỳ khác trong cùng transaction.
 - Một lớp có tối đa một giảng viên chính qua API phân công.
+- Ngày áp dụng lịch học và ngày thi phải nằm trong học kỳ của lớp học phần.
+- Các lịch học cùng lớp không được chồng ngày áp dụng và khung giờ trong cùng thứ.
 - Đăng ký mới chỉ vào lớp mở, với sinh viên đang học và tài khoản hoạt động.
 - Không vượt sĩ số, kể cả đăng ký đồng thời; không giảm sĩ số xuống dưới số đăng ký chưa hủy.
 - Không đổi môn/học kỳ của lớp đã có phân công hoặc đăng ký.

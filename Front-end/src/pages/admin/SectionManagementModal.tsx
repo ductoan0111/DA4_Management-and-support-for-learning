@@ -1,13 +1,31 @@
 import { useState, useEffect } from 'react';
 import { sectionsApi, teachersApi, studentsApi } from '../../api/services';
-import type { AdminSectionTeacherDto, AdminEnrollmentDto, AdminTeacherDto, AdminStudentDto } from '../../api/types';
-import { ApiError } from '../../api/client';
+import type { AdminSectionTeacherDto, AdminEnrollmentDto, AdminTeacherDto, AdminStudentDto, PagedResult } from '../../api/types';
+import { getApiErrorMessage } from '../../api/client';
+import SectionSchedulesTab from './SectionSchedulesTab';
+import SectionExamsTab from './SectionExamsTab';
 
 const ENROLL_STATUS: Record<number, string> = { 0: 'Đã hủy', 1: 'Đang học', 2: 'Hoàn thành' };
 const ENROLL_BADGE: Record<number, string> = { 0: 'badge-danger', 1: 'badge-success', 2: 'badge-info' };
+const SECTION_TABS = [
+  { id: 'teachers', label: '👨‍🏫 Giảng viên' },
+  { id: 'students', label: '🎓 Sinh viên' },
+  { id: 'schedules', label: '🗓️ Lịch học' },
+  { id: 'exams', label: '📝 Lịch thi' },
+] as const;
+type SectionTab = (typeof SECTION_TABS)[number]['id'];
+
+async function loadAllPages<T>(fetchPage: (page: number) => Promise<PagedResult<T>>): Promise<T[]> {
+  const first = await fetchPage(1);
+  if (first.totalPages <= 1) return first.items;
+  const remaining = await Promise.all(
+    Array.from({ length: first.totalPages - 1 }, (_, index) => fetchPage(index + 2)),
+  );
+  return [first, ...remaining].flatMap(result => result.items);
+}
 
 export default function SectionManagementModal({ sectionId, onClose }: { sectionId: number; onClose: () => void }) {
-  const [tab, setTab] = useState<'teachers' | 'students'>('teachers');
+  const [tab, setTab] = useState<SectionTab>('teachers');
   const [teachers, setTeachers] = useState<AdminSectionTeacherDto[]>([]);
   const [students, setStudents] = useState<AdminEnrollmentDto[]>([]);
   const [loading, setLoading] = useState(true);
@@ -24,18 +42,19 @@ export default function SectionManagementModal({ sectionId, onClose }: { section
   const [enrollStatus, setEnrollStatus] = useState(1);
 
   useEffect(() => {
-    setLoading(true);
     Promise.all([
-      sectionsApi.teachers(sectionId).then(r => setTeachers(r.items)),
-      sectionsApi.students(sectionId).then(r => setStudents(r.items)),
-      teachersApi.list({ pageSize: 200, status: 1 }).then(r => setAllTeachers(r.items)),
-      studentsApi.list({ pageSize: 500, status: 1 }).then(r => setAllStudents(r.items)),
+      loadAllPages(page => sectionsApi.teachers(sectionId, page, 100)).then(setTeachers),
+      loadAllPages(page => sectionsApi.students(sectionId, page, 100)).then(setStudents),
+      loadAllPages(page => teachersApi.list({ page, pageSize: 100, status: 1 })).then(setAllTeachers),
+      loadAllPages(page => studentsApi.list({ page, pageSize: 100, status: 1 })).then(setAllStudents),
     ]).catch(() => setError('Không thể tải dữ liệu')).finally(() => setLoading(false));
   }, [sectionId]);
 
   const refresh = () => {
-    sectionsApi.teachers(sectionId).then(r => setTeachers(r.items));
-    sectionsApi.students(sectionId).then(r => setStudents(r.items));
+    Promise.all([
+      loadAllPages(page => sectionsApi.teachers(sectionId, page, 100)).then(setTeachers),
+      loadAllPages(page => sectionsApi.students(sectionId, page, 100)).then(setStudents),
+    ]).catch(() => setError('Không thể làm mới dữ liệu lớp học phần.'));
   };
 
   const assignTeacher = async () => {
@@ -44,14 +63,14 @@ export default function SectionManagementModal({ sectionId, onClose }: { section
       await sectionsApi.assignTeacher(sectionId, Number(selTeacher), { isPrimary });
       setSelTeacher(''); refresh();
     } catch (e) {
-      alert(e instanceof ApiError ? (e.data as { message?: string })?.message ?? `Lỗi ${e.status}` : 'Lỗi');
+      alert(getApiErrorMessage(e));
     }
   };
 
   const removeTeacher = async (teacherId: number) => {
     if (!window.confirm('Bỏ phân công giảng viên này?')) return;
     try { await sectionsApi.removeTeacher(sectionId, teacherId); refresh(); }
-    catch (e) { alert(e instanceof ApiError ? (e.data as { message?: string })?.message ?? 'Lỗi' : 'Lỗi'); }
+    catch (e) { alert(getApiErrorMessage(e)); }
   };
 
   const enroll = async () => {
@@ -60,46 +79,46 @@ export default function SectionManagementModal({ sectionId, onClose }: { section
       await sectionsApi.enroll(sectionId, Number(selStudent), { status: enrollStatus });
       setSelStudent(''); refresh();
     } catch (e) {
-      alert(e instanceof ApiError ? (e.data as { message?: string })?.message ?? `Lỗi ${e.status}` : 'Lỗi');
+      alert(getApiErrorMessage(e));
     }
   };
 
   const cancelEnrollment = async (studentId: number) => {
     if (!window.confirm('Hủy đăng ký sinh viên này?')) return;
     try { await sectionsApi.cancelEnrollment(sectionId, studentId); refresh(); }
-    catch (e) { alert(e instanceof ApiError ? (e.data as { message?: string })?.message ?? 'Lỗi' : 'Lỗi'); }
+    catch (e) { alert(getApiErrorMessage(e)); }
   };
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal modal-lg" onClick={e => e.stopPropagation()}>
+      <div className="modal modal-xl" onClick={e => e.stopPropagation()}>
         <div className="modal-header">
           <h3>Quản lý lớp học phần #{sectionId}</h3>
           <button className="modal-close" onClick={onClose}>×</button>
         </div>
 
-        <div style={{ padding: '0 1.5rem', borderBottom: '1px solid #f1f5f9', display: 'flex', gap: '1rem' }}>
-          {(['teachers', 'students'] as const).map(t => (
+        <div className="section-management-tabs">
+          {SECTION_TABS.map(item => (
             <button
-              key={t}
-              onClick={() => setTab(t)}
+              key={item.id}
+              onClick={() => setTab(item.id)}
               style={{ padding: '0.75rem 0.5rem', border: 'none', background: 'none', cursor: 'pointer', fontWeight: 600, fontSize: '0.875rem',
-                borderBottom: tab === t ? '2px solid #2563eb' : '2px solid transparent', color: tab === t ? '#2563eb' : '#64748b' }}
+                borderBottom: tab === item.id ? '2px solid #2563eb' : '2px solid transparent', color: tab === item.id ? '#2563eb' : '#64748b' }}
             >
-              {t === 'teachers' ? '👨‍🏫 Giảng viên' : '🎓 Sinh viên'}
+              {item.label}
             </button>
           ))}
         </div>
 
         <div className="modal-body" style={{ minHeight: 300 }}>
-          {error && <div className="alert alert-error">{error}</div>}
-          {loading ? <div className="admin-loading">Đang tải…</div> : (
+          {(tab === 'teachers' || tab === 'students') && error && <div className="alert alert-error">{error}</div>}
+          {(tab === 'teachers' || tab === 'students') && loading ? <div className="admin-loading">Đang tải…</div> : (
             tab === 'teachers' ? (
               <div>
                 <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
                   <select value={selTeacher} onChange={e => setSelTeacher(e.target.value)} style={{ flex: 1, padding: '0.5rem', borderRadius: 6, border: '1px solid #d1d5db' }}>
                     <option value="">-- Chọn giảng viên --</option>
-                    {allTeachers.map(t => <option key={t.teacherId} value={t.teacherId}>{t.teacherCode} — GV #{t.teacherId}</option>)}
+                    {allTeachers.map(t => <option key={t.teacherId} value={t.teacherId}>{t.teacherCode} — {t.fullName}</option>)}
                   </select>
                   <label className="checkbox-row"><input type="checkbox" checked={isPrimary} onChange={e => setIsPrimary(e.target.checked)} /> GV chính</label>
                   <button className="btn btn-primary btn-sm" onClick={assignTeacher}>Phân công</button>
@@ -121,7 +140,7 @@ export default function SectionManagementModal({ sectionId, onClose }: { section
                   </tbody>
                 </table>
               </div>
-            ) : (
+            ) : tab === 'students' ? (
               <div>
                 <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
                   <select value={selStudent} onChange={e => setSelStudent(e.target.value)} style={{ flex: 1, padding: '0.5rem', borderRadius: 6, border: '1px solid #d1d5db' }}>
@@ -152,6 +171,10 @@ export default function SectionManagementModal({ sectionId, onClose }: { section
                   </tbody>
                 </table>
               </div>
+            ) : tab === 'schedules' ? (
+              <SectionSchedulesTab sectionId={sectionId} />
+            ) : (
+              <SectionExamsTab sectionId={sectionId} />
             )
           )}
         </div>

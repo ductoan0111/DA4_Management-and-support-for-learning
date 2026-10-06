@@ -3,6 +3,7 @@ using BE_Mobile.Contracts.Common;
 using BE_Mobile.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace BE_Mobile.Controllers.Admin;
 
@@ -29,6 +30,34 @@ public sealed class AdminSectionManagementController(IAdminSectionManagementServ
     [HttpDelete("students/{studentId:long}")]
     public async Task<IActionResult> CancelEnrollment(long sectionId, long studentId, CancellationToken cancellationToken) =>
         this.ToActionResult(await service.CancelEnrollmentAsync(sectionId, studentId, cancellationToken));
+
+    [HttpGet("schedules")]
+    public async Task<ActionResult<IReadOnlyList<AdminClassScheduleDto>>> Schedules(long sectionId, CancellationToken cancellationToken) =>
+        this.ToActionResult(await service.SchedulesAsync(sectionId, cancellationToken));
+    [HttpPost("schedules")]
+    public async Task<ActionResult<AdminClassScheduleDto>> CreateSchedule(long sectionId, SaveAdminClassScheduleRequest request, CancellationToken cancellationToken) =>
+        this.ToActionResult(await service.SaveScheduleAsync(sectionId, null, request, cancellationToken));
+    [HttpPut("schedules/{scheduleId:long}")]
+    public async Task<ActionResult<AdminClassScheduleDto>> UpdateSchedule(long sectionId, long scheduleId, SaveAdminClassScheduleRequest request, CancellationToken cancellationToken) =>
+        this.ToActionResult(await service.SaveScheduleAsync(sectionId, scheduleId, request, cancellationToken));
+    [HttpDelete("schedules/{scheduleId:long}")]
+    public async Task<IActionResult> DeleteSchedule(long sectionId, long scheduleId, CancellationToken cancellationToken) =>
+        this.ToActionResult(await service.DeleteScheduleAsync(sectionId, scheduleId, cancellationToken));
+
+    [HttpGet("exams")]
+    public async Task<ActionResult<IReadOnlyList<AdminExamDto>>> Exams(long sectionId, CancellationToken cancellationToken) =>
+        this.ToActionResult(await service.ExamsAsync(sectionId, cancellationToken));
+    [HttpPost("exams")]
+    public async Task<ActionResult<AdminExamDto>> CreateExam(long sectionId, SaveAdminExamRequest request, CancellationToken cancellationToken) =>
+        this.ToActionResult(await service.SaveExamAsync(sectionId, null, CurrentUserId(), request, cancellationToken));
+    [HttpPut("exams/{examId:long}")]
+    public async Task<ActionResult<AdminExamDto>> UpdateExam(long sectionId, long examId, SaveAdminExamRequest request, CancellationToken cancellationToken) =>
+        this.ToActionResult(await service.SaveExamAsync(sectionId, examId, CurrentUserId(), request, cancellationToken));
+    [HttpDelete("exams/{examId:long}")]
+    public async Task<IActionResult> DeleteExam(long sectionId, long examId, CancellationToken cancellationToken) =>
+        this.ToActionResult(await service.DeleteExamAsync(sectionId, examId, cancellationToken));
+
+    private long CurrentUserId() => long.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 }
 
 [ApiController]

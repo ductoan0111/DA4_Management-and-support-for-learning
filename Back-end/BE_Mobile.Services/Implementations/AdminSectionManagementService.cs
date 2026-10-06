@@ -19,6 +19,18 @@ public sealed class AdminSectionManagementService(IAdminSectionManagementReposit
         AdminOperation.RunAsync(() => repository.EnrollAsync(sectionId, studentId, request.Status, cancellationToken), request);
     public Task<OperationResult> CancelEnrollmentAsync(long sectionId, long studentId, CancellationToken cancellationToken) =>
         AdminOperation.DeleteAsync(() => repository.CancelEnrollmentAsync(sectionId, studentId, cancellationToken));
+    public Task<OperationResult<IReadOnlyList<AdminClassScheduleDto>>> SchedulesAsync(long sectionId, CancellationToken cancellationToken) =>
+        AdminOperation.RunAsync<IReadOnlyList<AdminClassScheduleDto>>(async () => await repository.SchedulesAsync(sectionId, cancellationToken));
+    public Task<OperationResult<AdminClassScheduleDto>> SaveScheduleAsync(long sectionId, long? scheduleId, SaveAdminClassScheduleRequest request, CancellationToken cancellationToken) =>
+        AdminOperation.RunAsync(() => repository.SaveScheduleAsync(sectionId, scheduleId, request, cancellationToken), request);
+    public Task<OperationResult> DeleteScheduleAsync(long sectionId, long scheduleId, CancellationToken cancellationToken) =>
+        AdminOperation.DeleteAsync(() => repository.DeleteScheduleAsync(sectionId, scheduleId, cancellationToken));
+    public Task<OperationResult<IReadOnlyList<AdminExamDto>>> ExamsAsync(long sectionId, CancellationToken cancellationToken) =>
+        AdminOperation.RunAsync<IReadOnlyList<AdminExamDto>>(async () => await repository.ExamsAsync(sectionId, cancellationToken));
+    public Task<OperationResult<AdminExamDto>> SaveExamAsync(long sectionId, long? examId, long createdByUserId, SaveAdminExamRequest request, CancellationToken cancellationToken) =>
+        AdminOperation.RunAsync(() => repository.SaveExamAsync(sectionId, examId, createdByUserId, request, cancellationToken), request);
+    public Task<OperationResult> DeleteExamAsync(long sectionId, long examId, CancellationToken cancellationToken) =>
+        AdminOperation.DeleteAsync(() => repository.DeleteExamAsync(sectionId, examId, cancellationToken));
     public Task<OperationResult<AdminStatisticsDto>> StatisticsAsync(CancellationToken cancellationToken) =>
         AdminOperation.RunAsync<AdminStatisticsDto>(async () => await repository.StatisticsAsync(cancellationToken));
 }

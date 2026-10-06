@@ -111,6 +111,24 @@ export const sectionsApi = {
     api.put<import('./types').AdminEnrollmentDto>(`/api/admin/course-sections/${sectionId}/students/${studentId}`, body),
   cancelEnrollment: (sectionId: number, studentId: number) =>
     api.delete(`/api/admin/course-sections/${sectionId}/students/${studentId}`),
+
+  schedules: (sectionId: number) =>
+    api.get<import('./types').AdminClassScheduleDto[]>(`/api/admin/course-sections/${sectionId}/schedules`),
+  createSchedule: (sectionId: number, body: import('./types').SaveAdminClassScheduleRequest) =>
+    api.post<import('./types').AdminClassScheduleDto>(`/api/admin/course-sections/${sectionId}/schedules`, body),
+  updateSchedule: (sectionId: number, scheduleId: number, body: import('./types').SaveAdminClassScheduleRequest) =>
+    api.put<import('./types').AdminClassScheduleDto>(`/api/admin/course-sections/${sectionId}/schedules/${scheduleId}`, body),
+  deleteSchedule: (sectionId: number, scheduleId: number) =>
+    api.delete(`/api/admin/course-sections/${sectionId}/schedules/${scheduleId}`),
+
+  exams: (sectionId: number) =>
+    api.get<import('./types').AdminExamDto[]>(`/api/admin/course-sections/${sectionId}/exams`),
+  createExam: (sectionId: number, body: import('./types').SaveAdminExamRequest) =>
+    api.post<import('./types').AdminExamDto>(`/api/admin/course-sections/${sectionId}/exams`, body),
+  updateExam: (sectionId: number, examId: number, body: import('./types').SaveAdminExamRequest) =>
+    api.put<import('./types').AdminExamDto>(`/api/admin/course-sections/${sectionId}/exams/${examId}`, body),
+  deleteExam: (sectionId: number, examId: number) =>
+    api.delete(`/api/admin/course-sections/${sectionId}/exams/${examId}`),
 };
 
 export const teachersApi = {
