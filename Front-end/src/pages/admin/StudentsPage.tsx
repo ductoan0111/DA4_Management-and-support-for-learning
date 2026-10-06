@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ApiError } from '../../api/client';
+import { getApiErrorMessage } from '../../api/client';
 import CrudPage from '../../components/CrudPage';
 import { studentsApi, majorsApi, academicClassesApi, usersApi } from '../../api/services';
 import type { AdminStudentDto, AdminMajorDto, AdminAcademicClassDto, CreateAdminStudentRequest, UpdateAdminStudentRequest } from '../../api/types';
@@ -21,7 +21,7 @@ export default function StudentsPage() {
   const [userOptions, setUserOptions] = useState<Array<{ userId: number; username: string; fullName: string }>>([]);
 
   useEffect(() => {
-    majorsApi.list({ pageSize: 200 }).then(r => setMajors(r.items));
+    majorsApi.list({ pageSize: 100 }).then(r => setMajors(r.items));
   }, []);
 
   useEffect(() => {
@@ -36,16 +36,14 @@ export default function StudentsPage() {
     : (form as UpdateAdminStudentRequest).majorId ?? 0;
 
   useEffect(() => {
-    if (selectedMajorId) {
-      academicClassesApi.list({ majorId: selectedMajorId, pageSize: 200 }).then(r => setClasses(r.items));
-    } else {
-      setClasses([]);
-    }
+    if (!selectedMajorId) return;
+    academicClassesApi.list({ majorId: selectedMajorId, pageSize: 100 }).then(r => setClasses(r.items));
   }, [selectedMajorId]);
 
   const openAdd = () => {
     setEditing(null);
     setForm({ userId: 0, studentCode: '', majorId: 0, enrollmentYear: new Date().getFullYear(), status: 1 } as CreateAdminStudentRequest);
+    setClasses([]);
     setFormError(''); setUserSearch(''); setModal(true);
   };
 
@@ -66,7 +64,7 @@ export default function StudentsPage() {
       else await studentsApi.create(form as CreateAdminStudentRequest);
       setModal(false);
     } catch (e) {
-      setFormError(e instanceof ApiError ? (e.data as { message?: string })?.message ?? `Lỗi ${e.status}` : 'Lỗi');
+      setFormError(getApiErrorMessage(e));
     } finally { setSaving(false); }
   };
 
@@ -158,7 +156,10 @@ export default function StudentsPage() {
               <div className="form-row">
                 <div className="form-group">
                   <label>Ngành *</label>
-                  <select value={majorId} onChange={e => setForm(f => ({ ...f, majorId: Number(e.target.value), academicClassId: undefined }))}>
+                  <select value={majorId} onChange={e => {
+                    setClasses([]);
+                    setForm(f => ({ ...f, majorId: Number(e.target.value), academicClassId: undefined }));
+                  }}>
                     <option value={0}>-- Chọn ngành --</option>
                     {majors.map(m => <option key={m.majorId} value={m.majorId}>{m.majorName}</option>)}
                   </select>

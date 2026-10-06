@@ -13,12 +13,12 @@ const AuthContext = createContext<AuthState>(null!);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AdminUserDto | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => Boolean(localStorage.getItem('admin_token')));
 
   useEffect(() => {
     // Try to restore session by checking if token exists
     const token = localStorage.getItem('admin_token');
-    if (!token) { setLoading(false); return; }
+    if (!token) return;
     // Validate token by calling statistics (lightweight)
     api.get<{ totalUsers: number }>('/api/admin/statistics')
       .then(() => {
@@ -27,7 +27,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (saved) setUser(JSON.parse(saved));
       })
       .catch((e: ApiError) => {
-        if (e.status === 401 || e.status === 403) clearToken();
+        if (e.status === 401 || e.status === 403) {
+          clearToken();
+          localStorage.removeItem('admin_user');
+        }
       })
       .finally(() => setLoading(false));
   }, []);
@@ -52,6 +55,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useAuth() {
   return useContext(AuthContext);
 }

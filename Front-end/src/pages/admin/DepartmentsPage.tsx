@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { ApiError } from '../../api/client';
+import { getApiErrorMessage } from '../../api/client';
 import CrudPage from '../../components/CrudPage';
 import { departmentsApi } from '../../api/services';
 import type { AdminDepartmentDto, SaveAdminDepartmentRequest } from '../../api/types';
 
-const empty: SaveAdminDepartmentRequest = { departmentCode: '', departmentName: '', isActive: true };
+const empty: SaveAdminDepartmentRequest = { departmentCode: '', departmentName: '', description: '', isActive: true };
 
 export default function DepartmentsPage() {
   const [modal, setModal] = useState(false);
@@ -16,7 +16,7 @@ export default function DepartmentsPage() {
   const openAdd = () => { setEditing(null); setForm(empty); setFormError(''); setModal(true); };
   const openEdit = (row: AdminDepartmentDto) => {
     setEditing(row);
-    setForm({ departmentCode: row.departmentCode, departmentName: row.departmentName, isActive: row.isActive });
+    setForm({ departmentCode: row.departmentCode, departmentName: row.departmentName, description: row.description ?? '', isActive: row.isActive });
     setFormError('');
     setModal(true);
   };
@@ -30,7 +30,7 @@ export default function DepartmentsPage() {
       // trigger re-fetch via key trick
       window.dispatchEvent(new Event('crud-refresh'));
     } catch (e) {
-      setFormError(e instanceof ApiError ? (e.data as { message?: string })?.message ?? `Lỗi ${e.status}` : 'Lỗi');
+      setFormError(getApiErrorMessage(e));
     } finally { setSaving(false); }
   };
 
@@ -66,6 +66,10 @@ export default function DepartmentsPage() {
               <div className="form-group">
                 <label>Tên khoa *</label>
                 <input value={form.departmentName} onChange={e => setForm(f => ({ ...f, departmentName: e.target.value }))} placeholder="VD: Công nghệ thông tin" />
+              </div>
+              <div className="form-group">
+                <label>Mô tả</label>
+                <textarea rows={3} value={form.description ?? ''} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} />
               </div>
               <label className="checkbox-row">
                 <input type="checkbox" checked={form.isActive} onChange={e => setForm(f => ({ ...f, isActive: e.target.checked }))} />

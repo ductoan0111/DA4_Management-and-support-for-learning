@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { ApiError } from '../api/client';
+import { getApiErrorMessage } from '../api/client';
 
 interface Column<T> {
   key: string;
@@ -19,10 +19,13 @@ interface CrudPageProps<T extends { [key: string]: unknown }> {
   filterParams?: Record<string, string | number | boolean | undefined>;
   searchKey?: string;
   extraActions?: (row: T) => React.ReactNode;
+  deleteLabel?: string;
+  deleteConfirmMessage?: string;
 }
 
 export default function CrudPage<T extends { [key: string]: unknown }>({
   title, fetchList, columns, idKey, onAdd, onEdit, onDelete, filters, filterParams, searchKey = 'search', extraActions,
+  deleteLabel = 'Xóa', deleteConfirmMessage = 'Bạn có chắc muốn xóa?',
 }: CrudPageProps<T>) {
   const [items, setItems] = useState<T[]>([]);
   const [loading, setLoading] = useState(true);
@@ -44,22 +47,30 @@ export default function CrudPage<T extends { [key: string]: unknown }>({
       setTotalPages(res.totalPages);
       setTotalCount(res.totalCount);
     } catch (e) {
-      setError(e instanceof ApiError ? `Lỗi ${e.status}` : 'Không thể tải dữ liệu');
+      setError(getApiErrorMessage(e, 'Không thể tải dữ liệu'));
     } finally {
       setLoading(false);
     }
   }, [fetchList, page, search, filterParams, searchKey]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    const run = () => { void load(); };
+    const timer = window.setTimeout(run, 0);
+    window.addEventListener('crud-refresh', run);
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener('crud-refresh', run);
+    };
+  }, [load]);
 
   const handleDelete = async (row: T) => {
-    if (!window.confirm('Bạn có chắc muốn xóa?')) return;
+    if (!window.confirm(deleteConfirmMessage)) return;
     setDeleting(row[idKey]);
     try {
       await onDelete(row);
       load();
     } catch (e) {
-      alert(e instanceof ApiError ? `Lỗi: ${(e.data as { message?: string })?.message ?? e.status}` : 'Xóa thất bại');
+      alert(getApiErrorMessage(e, 'Xóa thất bại'));
     } finally {
       setDeleting(null);
     }
@@ -115,7 +126,7 @@ export default function CrudPage<T extends { [key: string]: unknown }>({
                               onClick={() => handleDelete(row)}
                               disabled={deleting === row[idKey]}
                             >
-                              🗑️ Xóa
+                              🗑️ {deleteLabel}
                             </button>
                           </div>
                         </td>

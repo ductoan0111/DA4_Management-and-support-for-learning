@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ApiError } from '../../api/client';
+import { getApiErrorMessage } from '../../api/client';
 import CrudPage from '../../components/CrudPage';
 import { sectionsApi, coursesApi, semestersApi } from '../../api/services';
 import type { AdminCourseSectionDto, AdminCourseDto, AdminSemesterDto, SaveAdminCourseSectionRequest } from '../../api/types';
@@ -24,7 +24,7 @@ export default function CourseSectionsPage() {
   const [managingId, setManagingId] = useState<number | null>(null);
 
   useEffect(() => {
-    coursesApi.list({ pageSize: 200 }).then(r => setCourses(r.items));
+    coursesApi.list({ pageSize: 100 }).then(r => setCourses(r.items));
     semestersApi.list({ pageSize: 50 }).then(r => setSemesters(r.items));
   }, []);
 
@@ -42,7 +42,7 @@ export default function CourseSectionsPage() {
       else await sectionsApi.create(form);
       setModal(false);
     } catch (e) {
-      setFormError(e instanceof ApiError ? (e.data as { message?: string })?.message ?? `Lỗi ${e.status}` : 'Lỗi');
+      setFormError(getApiErrorMessage(e));
     } finally { setSaving(false); }
   };
 

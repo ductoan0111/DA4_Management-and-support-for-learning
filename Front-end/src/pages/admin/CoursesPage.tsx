@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ApiError } from '../../api/client';
+import { getApiErrorMessage } from '../../api/client';
 import CrudPage from '../../components/CrudPage';
 import { coursesApi, departmentsApi } from '../../api/services';
 import type { AdminCourseDto, AdminDepartmentDto, SaveAdminCourseRequest } from '../../api/types';
@@ -33,7 +33,7 @@ export default function CoursesPage() {
       else await coursesApi.create(form);
       setModal(false);
     } catch (e) {
-      setFormError(e instanceof ApiError ? (e.data as { message?: string })?.message ?? `Lỗi ${e.status}` : 'Lỗi');
+      setFormError(getApiErrorMessage(e));
     } finally { setSaving(false); }
   };
 

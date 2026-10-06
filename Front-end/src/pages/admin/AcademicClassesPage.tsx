@@ -1,10 +1,17 @@
 import { useState, useEffect } from 'react';
-import { ApiError } from '../../api/client';
+import { getApiErrorMessage } from '../../api/client';
 import CrudPage from '../../components/CrudPage';
 import { academicClassesApi, majorsApi } from '../../api/services';
 import type { AdminAcademicClassDto, AdminMajorDto, SaveAdminAcademicClassRequest } from '../../api/types';
 
-const empty: SaveAdminAcademicClassRequest = { majorId: 0, classCode: '', className: '', isActive: true };
+const empty: SaveAdminAcademicClassRequest = {
+  majorId: 0,
+  classCode: '',
+  className: '',
+  intakeYear: new Date().getFullYear(),
+  graduationYear: undefined,
+  isActive: true,
+};
 
 export default function AcademicClassesPage() {
   const [modal, setModal] = useState(false);
@@ -16,13 +23,20 @@ export default function AcademicClassesPage() {
   const [filterMajor, setFilterMajor] = useState('');
 
   useEffect(() => {
-    majorsApi.list({ pageSize: 200 }).then(r => setMajors(r.items));
+    majorsApi.list({ pageSize: 100 }).then(r => setMajors(r.items));
   }, []);
 
   const openAdd = () => { setEditing(null); setForm(empty); setFormError(''); setModal(true); };
   const openEdit = (row: AdminAcademicClassDto) => {
     setEditing(row);
-    setForm({ majorId: row.majorId, classCode: row.classCode, className: row.className, isActive: row.isActive });
+    setForm({
+      majorId: row.majorId,
+      classCode: row.classCode,
+      className: row.className,
+      intakeYear: row.intakeYear,
+      graduationYear: row.graduationYear ?? undefined,
+      isActive: row.isActive,
+    });
     setFormError(''); setModal(true);
   };
 
@@ -33,7 +47,7 @@ export default function AcademicClassesPage() {
       else await academicClassesApi.create(form);
       setModal(false);
     } catch (e) {
-      setFormError(e instanceof ApiError ? (e.data as { message?: string })?.message ?? `Lỗi ${e.status}` : 'Lỗi');
+      setFormError(getApiErrorMessage(e));
     } finally { setSaving(false); }
   };
 
@@ -50,6 +64,8 @@ export default function AcademicClassesPage() {
           { key: 'classCode', header: 'Mã lớp' },
           { key: 'className', header: 'Tên lớp' },
           { key: 'majorId', header: 'Ngành', render: r => <span>{majorName(r.majorId as number)}</span> },
+          { key: 'intakeYear', header: 'Khóa' },
+          { key: 'graduationYear', header: 'Năm TN', render: r => <span>{r.graduationYear ? String(r.graduationYear) : '—'}</span> },
           { key: 'isActive', header: 'Trạng thái', render: r => <span className={`badge ${r.isActive ? 'badge-success' : 'badge-danger'}`}>{r.isActive ? 'Hoạt động' : 'Ngừng'}</span> },
         ]}
         filters={
@@ -87,6 +103,18 @@ export default function AcademicClassesPage() {
                 <div className="form-group">
                   <label>Tên lớp *</label>
                   <input value={form.className} onChange={e => setForm(f => ({ ...f, className: e.target.value }))} />
+                </div>
+              </div>
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Năm nhập học *</label>
+                  <input type="number" min={1900} max={2100} value={form.intakeYear}
+                    onChange={e => setForm(f => ({ ...f, intakeYear: Number(e.target.value) }))} />
+                </div>
+                <div className="form-group">
+                  <label>Năm tốt nghiệp dự kiến</label>
+                  <input type="number" min={form.intakeYear || 1900} max={2100} value={form.graduationYear ?? ''}
+                    onChange={e => setForm(f => ({ ...f, graduationYear: e.target.value ? Number(e.target.value) : undefined }))} />
                 </div>
               </div>
               <label className="checkbox-row">

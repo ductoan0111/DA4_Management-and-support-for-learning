@@ -69,12 +69,14 @@ export interface AdminDepartmentDto {
   departmentId: number;
   departmentCode: string;
   departmentName: string;
+  description: string | null;
   isActive: boolean;
 }
 
 export interface SaveAdminDepartmentRequest {
   departmentCode: string;
   departmentName: string;
+  description?: string;
   isActive: boolean;
 }
 
@@ -84,6 +86,7 @@ export interface AdminMajorDto {
   departmentId: number;
   majorCode: string;
   majorName: string;
+  description: string | null;
   isActive: boolean;
 }
 
@@ -91,6 +94,7 @@ export interface SaveAdminMajorRequest {
   departmentId: number;
   majorCode: string;
   majorName: string;
+  description?: string;
   isActive: boolean;
 }
 
@@ -100,6 +104,8 @@ export interface AdminAcademicClassDto {
   majorId: number;
   classCode: string;
   className: string;
+  intakeYear: number;
+  graduationYear: number | null;
   isActive: boolean;
 }
 
@@ -107,6 +113,8 @@ export interface SaveAdminAcademicClassRequest {
   majorId: number;
   classCode: string;
   className: string;
+  intakeYear: number;
+  graduationYear?: number;
   isActive: boolean;
 }
 
@@ -175,6 +183,7 @@ export interface AdminTeacherDto {
   teacherId: number;
   userId: number;
   teacherCode: string;
+  fullName: string;
   departmentId: number;
   academicTitle: string | null;
   specialization: string | null;
@@ -263,6 +272,55 @@ export interface AdminEnrollmentDto {
 
 export interface SaveAdminEnrollmentRequest {
   status: number;
+}
+
+export interface AdminClassScheduleDto {
+  scheduleId: number;
+  sectionId: number;
+  dayOfWeek: number;
+  startTime: string;
+  endTime: string;
+  room: string | null;
+  building: string | null;
+  effectiveFrom: string;
+  effectiveTo: string;
+  note: string | null;
+}
+
+export interface SaveAdminClassScheduleRequest {
+  dayOfWeek: number;
+  startTime: string;
+  endTime: string;
+  room?: string;
+  building?: string;
+  effectiveFrom: string;
+  effectiveTo: string;
+  note?: string;
+}
+
+export interface AdminExamDto {
+  examId: number;
+  sectionId: number;
+  createdByUserId: number;
+  createdByFullName: string;
+  examName: string;
+  examType: number;
+  examDate: string;
+  startTime: string;
+  durationMinutes: number;
+  room: string | null;
+  note: string | null;
+  createdAt: string;
+}
+
+export interface SaveAdminExamRequest {
+  examName: string;
+  examType: number;
+  examDate: string;
+  startTime: string;
+  durationMinutes: number;
+  room?: string;
+  note?: string;
 }
 
 // ─── Statistics ──────────────────────────────────────────────────────────────

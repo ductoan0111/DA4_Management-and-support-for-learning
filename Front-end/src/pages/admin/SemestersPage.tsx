@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ApiError } from '../../api/client';
+import { getApiErrorMessage } from '../../api/client';
 import CrudPage from '../../components/CrudPage';
 import { semestersApi } from '../../api/services';
 import type { AdminSemesterDto, SaveAdminSemesterRequest } from '../../api/types';
@@ -26,8 +26,9 @@ export default function SemestersPage() {
       if (editing) await semestersApi.update(editing.semesterId, form);
       else await semestersApi.create(form);
       setModal(false);
+      window.dispatchEvent(new Event('crud-refresh'));
     } catch (e) {
-      setFormError(e instanceof ApiError ? (e.data as { message?: string })?.message ?? `Lỗi ${e.status}` : 'Lỗi');
+      setFormError(getApiErrorMessage(e));
     } finally { setSaving(false); }
   };
 

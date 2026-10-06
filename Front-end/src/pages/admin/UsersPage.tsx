@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ApiError } from '../../api/client';
+import { getApiErrorMessage } from '../../api/client';
 import CrudPage from '../../components/CrudPage';
 import { usersApi } from '../../api/services';
 import type { AdminUserDto, AdminRoleDto, CreateAdminUserRequest, UpdateAdminUserRequest } from '../../api/types';
@@ -11,6 +11,7 @@ export default function UsersPage() {
   const [roles, setRoles] = useState<AdminRoleDto[]>([]);
   const [filterRole, setFilterRole] = useState('');
   const [filterActive, setFilterActive] = useState('');
+  const [editRoleId, setEditRoleId] = useState(0);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState('');
 
@@ -39,6 +40,7 @@ export default function UsersPage() {
 
   const openEdit = (row: AdminUserDto) => {
     setEditing(row);
+    setEditRoleId(row.roleId);
     setUpdateForm({ email: row.email, fullName: row.fullName, phone: row.phone ?? '', isActive: row.isActive });
     setFormError(''); setModal(true);
   };
@@ -50,11 +52,17 @@ export default function UsersPage() {
   const save = async () => {
     setSaving(true); setFormError('');
     try {
-      if (editing) await usersApi.update(editing.userId, updateForm);
-      else await usersApi.create(createForm);
+      if (editing) {
+        await usersApi.update(editing.userId, updateForm);
+        if (editRoleId !== editing.roleId) {
+          await usersApi.setRole(editing.userId, { roleId: editRoleId });
+        }
+      } else {
+        await usersApi.create(createForm);
+      }
       setModal(false);
     } catch (e) {
-      setFormError(e instanceof ApiError ? (e.data as { message?: string })?.message ?? `Lỗi ${e.status}` : 'Lỗi');
+      setFormError(getApiErrorMessage(e));
     } finally { setSaving(false); }
   };
 
@@ -65,7 +73,7 @@ export default function UsersPage() {
       await usersApi.resetPassword(editing.userId, { password: newPassword });
       setPwdModal(false);
     } catch (e) {
-      setFormError(e instanceof ApiError ? (e.data as { message?: string })?.message ?? `Lỗi ${e.status}` : 'Lỗi');
+      setFormError(getApiErrorMessage(e));
     } finally { setSaving(false); }
   };
 
@@ -104,6 +112,8 @@ export default function UsersPage() {
         onAdd={openAdd}
         onEdit={openEdit as never}
         onDelete={async row => { await usersApi.update(row.userId, { email: row.email, fullName: row.fullName, phone: row.phone ?? undefined, isActive: false }); }}
+        deleteLabel="Khóa"
+        deleteConfirmMessage="Bạn có chắc muốn khóa tài khoản này?"
       />
 
       {/* Create/Edit Modal */}
@@ -127,14 +137,19 @@ export default function UsersPage() {
                     <input type="password" value={createForm.password} onChange={e => setCreateForm(f => ({ ...f, password: e.target.value }))} />
                   </div>
                 </div>
-                <div className="form-group">
-                  <label>Vai trò *</label>
-                  <select value={createForm.roleId} onChange={e => setCreateForm(f => ({ ...f, roleId: Number(e.target.value) }))}>
-                    <option value={0}>-- Chọn vai trò --</option>
-                    {roles.map(r => <option key={r.roleId} value={r.roleId}>{r.roleName} ({r.roleCode})</option>)}
-                  </select>
-                </div>
               </>}
+              <div className="form-group">
+                <label>Vai trò *</label>
+                <select
+                  value={editing ? editRoleId : createForm.roleId}
+                  onChange={e => editing
+                    ? setEditRoleId(Number(e.target.value))
+                    : setCreateForm(f => ({ ...f, roleId: Number(e.target.value) }))}
+                >
+                  <option value={0}>-- Chọn vai trò --</option>
+                  {roles.map(r => <option key={r.roleId} value={r.roleId}>{r.roleName} ({r.roleCode})</option>)}
+                </select>
+              </div>
               <div className="form-group">
                 <label>Họ và tên *</label>
                 <input value={editing ? updateForm.fullName : createForm.fullName}

@@ -5,9 +5,13 @@ import type { AdminStatisticsDto } from '../../api/types';
 export default function DashboardPage() {
   const [stats, setStats] = useState<AdminStatisticsDto | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   useEffect(() => {
-    statisticsApi.get().then(setStats).finally(() => setLoading(false));
+    statisticsApi.get()
+      .then(setStats)
+      .catch(() => setError('Không thể tải thống kê hệ thống.'))
+      .finally(() => setLoading(false));
   }, []);
 
   const cards = stats
@@ -31,6 +35,7 @@ export default function DashboardPage() {
         </span>
       </div>
       <div className="admin-content">
+        {error && <div className="alert alert-error" style={{ marginBottom: '1rem' }}>{error}</div>}
         {loading ? (
           <div className="admin-loading">Đang tải thống kê…</div>
         ) : (
