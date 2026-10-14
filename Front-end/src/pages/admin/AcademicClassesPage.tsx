@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Modal, Form, Input, InputNumber, Select, Switch, Tag, Alert, Row, Col } from 'antd';
 import { getApiErrorMessage } from '../../api/client';
 import CrudPage from '../../components/CrudPage';
 import { academicClassesApi, majorsApi } from '../../api/services';
@@ -16,20 +17,27 @@ const empty: SaveAdminAcademicClassRequest = {
 export default function AcademicClassesPage() {
   const [modal, setModal] = useState(false);
   const [editing, setEditing] = useState<AdminAcademicClassDto | null>(null);
-  const [form, setForm] = useState<SaveAdminAcademicClassRequest>(empty);
+  const [form] = Form.useForm<SaveAdminAcademicClassRequest>();
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState('');
   const [majors, setMajors] = useState<AdminMajorDto[]>([]);
-  const [filterMajor, setFilterMajor] = useState('');
+  const [filterMajor, setFilterMajor] = useState<string>('');
 
   useEffect(() => {
     majorsApi.list({ pageSize: 100 }).then(r => setMajors(r.items));
   }, []);
 
-  const openAdd = () => { setEditing(null); setForm(empty); setFormError(''); setModal(true); };
+  const openAdd = () => {
+    setEditing(null);
+    form.resetFields();
+    form.setFieldsValue(empty);
+    setFormError('');
+    setModal(true);
+  };
+
   const openEdit = (row: AdminAcademicClassDto) => {
     setEditing(row);
-    setForm({
+    form.setFieldsValue({
       majorId: row.majorId,
       classCode: row.classCode,
       className: row.className,
@@ -37,18 +45,25 @@ export default function AcademicClassesPage() {
       graduationYear: row.graduationYear ?? undefined,
       isActive: row.isActive,
     });
-    setFormError(''); setModal(true);
+    setFormError('');
+    setModal(true);
   };
 
   const save = async () => {
-    setSaving(true); setFormError('');
     try {
-      if (editing) await academicClassesApi.update(editing.academicClassId, form);
-      else await academicClassesApi.create(form);
+      const values = await form.validateFields();
+      setSaving(true);
+      setFormError('');
+      if (editing) await academicClassesApi.update(editing.academicClassId, values);
+      else await academicClassesApi.create(values);
       setModal(false);
-    } catch (e) {
+      window.dispatchEvent(new Event('crud-refresh'));
+    } catch (e: any) {
+      if (e?.errorFields) return;
       setFormError(getApiErrorMessage(e));
-    } finally { setSaving(false); }
+    } finally {
+      setSaving(false);
+    }
   };
 
   const majorName = (id: number) => majors.find(m => m.majorId === id)?.majorName ?? id;
@@ -57,78 +72,126 @@ export default function AcademicClassesPage() {
     <>
       <CrudPage<AdminAcademicClassDto & { [key: string]: unknown }>
         title="Lớp hành chính"
-        fetchList={p => academicClassesApi.list({ ...p, ...(filterMajor ? { majorId: Number(filterMajor) } : {}) }) as never}
+        fetchList={p =>
+          academicClassesApi.list({
+            ...p,
+            ...(filterMajor ? { majorId: Number(filterMajor) } : {}),
+          }) as never
+        }
         idKey="academicClassId"
         filterParams={filterMajor ? { majorId: Number(filterMajor) } : {}}
         columns={[
-          { key: 'classCode', header: 'Mã lớp' },
+          {
+            key: 'classCode',
+            header: 'Mã lớp',
+            render: r => <Tag color="blue">{String(r.classCode)}</Tag>,
+          },
           { key: 'className', header: 'Tên lớp' },
-          { key: 'majorId', header: 'Ngành', render: r => <span>{majorName(r.majorId as number)}</span> },
-          { key: 'intakeYear', header: 'Khóa' },
-          { key: 'graduationYear', header: 'Năm TN', render: r => <span>{r.graduationYear ? String(r.graduationYear) : '—'}</span> },
-          { key: 'isActive', header: 'Trạng thái', render: r => <span className={`badge ${r.isActive ? 'badge-success' : 'badge-danger'}`}>{r.isActive ? 'Hoạt động' : 'Ngừng'}</span> },
+          {
+            key: 'majorId',
+            header: 'Ngành',
+            render: r => <span>{majorName(r.majorId as number)}</span>,
+          },
+          { key: 'intakeYear', header: 'Khóa tuyển sinh' },
+          {
+            key: 'graduationYear',
+            header: 'Năm tốt nghiệp',
+            render: r => <span>{r.graduationYear ? String(r.graduationYear) : '—'}</span>,
+          },
+          {
+            key: 'isActive',
+            header: 'Trạng thái',
+            render: r => (
+              <Tag color={r.isActive ? 'success' : 'error'}>
+                {r.isActive ? 'Hoạt động' : 'Ngừng'}
+              </Tag>
+            ),
+          },
         ]}
         filters={
-          <select value={filterMajor} onChange={e => setFilterMajor(e.target.value)}>
-            <option value="">-- Tất cả ngành --</option>
-            {majors.map(m => <option key={m.majorId} value={m.majorId}>{m.majorName}</option>)}
-          </select>
+          <Select
+            style={{ width: 220 }}
+            placeholder="Tất cả ngành học"
+            allowClear
+            value={filterMajor || undefined}
+            onChange={val => setFilterMajor(val ?? '')}
+            options={majors.map(m => ({ value: String(m.majorId), label: m.majorName }))}
+          />
         }
         onAdd={openAdd}
         onEdit={openEdit as never}
-        onDelete={async row => { await academicClassesApi.delete(row.academicClassId); }}
+        onDelete={async row => {
+          await academicClassesApi.delete(row.academicClassId);
+        }}
       />
 
-      {modal && (
-        <div className="modal-overlay" onClick={() => setModal(false)}>
-          <div className="modal" onClick={e => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>{editing ? 'Sửa lớp hành chính' : 'Thêm lớp hành chính'}</h3>
-              <button className="modal-close" onClick={() => setModal(false)}>×</button>
-            </div>
-            <div className="modal-body">
-              {formError && <div className="alert alert-error">{formError}</div>}
-              <div className="form-group">
-                <label>Ngành *</label>
-                <select value={form.majorId} onChange={e => setForm(f => ({ ...f, majorId: Number(e.target.value) }))}>
-                  <option value={0}>-- Chọn ngành --</option>
-                  {majors.map(m => <option key={m.majorId} value={m.majorId}>{m.majorName}</option>)}
-                </select>
-              </div>
-              <div className="form-row">
-                <div className="form-group">
-                  <label>Mã lớp *</label>
-                  <input value={form.classCode} onChange={e => setForm(f => ({ ...f, classCode: e.target.value }))} />
-                </div>
-                <div className="form-group">
-                  <label>Tên lớp *</label>
-                  <input value={form.className} onChange={e => setForm(f => ({ ...f, className: e.target.value }))} />
-                </div>
-              </div>
-              <div className="form-row">
-                <div className="form-group">
-                  <label>Năm nhập học *</label>
-                  <input type="number" min={1900} max={2100} value={form.intakeYear}
-                    onChange={e => setForm(f => ({ ...f, intakeYear: Number(e.target.value) }))} />
-                </div>
-                <div className="form-group">
-                  <label>Năm tốt nghiệp dự kiến</label>
-                  <input type="number" min={form.intakeYear || 1900} max={2100} value={form.graduationYear ?? ''}
-                    onChange={e => setForm(f => ({ ...f, graduationYear: e.target.value ? Number(e.target.value) : undefined }))} />
-                </div>
-              </div>
-              <label className="checkbox-row">
-                <input type="checkbox" checked={form.isActive} onChange={e => setForm(f => ({ ...f, isActive: e.target.checked }))} />
-                Đang hoạt động
-              </label>
-            </div>
-            <div className="modal-footer">
-              <button className="btn btn-secondary" onClick={() => setModal(false)}>Hủy</button>
-              <button className="btn btn-primary" onClick={save} disabled={saving}>{saving ? 'Đang lưu…' : 'Lưu'}</button>
-            </div>
-          </div>
-        </div>
-      )}
+      <Modal
+        title={editing ? 'Sửa lớp hành chính' : 'Thêm lớp hành chính'}
+        open={modal}
+        onOk={save}
+        onCancel={() => setModal(false)}
+        confirmLoading={saving}
+        destroyOnClose
+        okText="Lưu"
+        cancelText="Hủy"
+        width={560}
+      >
+        {formError && <Alert message={formError} type="error" showIcon style={{ marginBottom: 16 }} />}
+        <Form form={form} layout="vertical">
+          <Form.Item
+            name="majorId"
+            label="Chuyên ngành"
+            rules={[{ required: true, message: 'Vui lòng chọn ngành' }]}
+          >
+            <Select
+              placeholder="-- Chọn ngành học --"
+              options={majors.map(m => ({ value: m.majorId, label: `${m.majorCode} — ${m.majorName}` }))}
+            />
+          </Form.Item>
+
+          <Row gutter={16}>
+            <Col xs={24} sm={10}>
+              <Form.Item
+                name="classCode"
+                label="Mã lớp"
+                rules={[{ required: true, message: 'Vui lòng nhập mã lớp' }]}
+              >
+                <Input placeholder="VD: CNTT2024A" />
+              </Form.Item>
+            </Col>
+            <Col xs={24} sm={14}>
+              <Form.Item
+                name="className"
+                label="Tên lớp"
+                rules={[{ required: true, message: 'Vui lòng nhập tên lớp' }]}
+              >
+                <Input placeholder="VD: Lớp Công nghệ thông tin K2024A" />
+              </Form.Item>
+            </Col>
+          </Row>
+
+          <Row gutter={16}>
+            <Col xs={24} sm={12}>
+              <Form.Item
+                name="intakeYear"
+                label="Năm nhập học"
+                rules={[{ required: true, message: 'Vui lòng nhập năm nhập học' }]}
+              >
+                <InputNumber min={2000} max={2100} style={{ width: '100%' }} />
+              </Form.Item>
+            </Col>
+            <Col xs={24} sm={12}>
+              <Form.Item name="graduationYear" label="Năm tốt nghiệp dự kiến">
+                <InputNumber min={2000} max={2100} style={{ width: '100%' }} />
+              </Form.Item>
+            </Col>
+          </Row>
+
+          <Form.Item name="isActive" valuePropName="checked" style={{ marginBottom: 0 }}>
+            <Switch /> <span style={{ marginLeft: 8 }}>Đang hoạt động</span>
+          </Form.Item>
+        </Form>
+      </Modal>
     </>
   );
 }

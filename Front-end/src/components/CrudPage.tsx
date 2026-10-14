@@ -1,13 +1,17 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
+import { Card, Table, Input, Button, Space, Popconfirm, Typography, Alert, Tag, Tooltip } from 'antd';
+import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined, ReloadOutlined } from '@ant-design/icons';
 import { getApiErrorMessage } from '../api/client';
 
-interface Column<T> {
+const { Title, Text } = Typography;
+
+export interface Column<T> {
   key: string;
   header: string;
   render?: (row: T) => React.ReactNode;
 }
 
-interface CrudPageProps<T extends { [key: string]: unknown }> {
+export interface CrudPageProps<T extends { [key: string]: unknown }> {
   title: string;
   fetchList: (params: Record<string, string | number | boolean | undefined>) => Promise<{ items: T[]; totalCount: number; page: number; pageSize: number; totalPages: number }>;
   columns: Column<T>[];
@@ -24,14 +28,24 @@ interface CrudPageProps<T extends { [key: string]: unknown }> {
 }
 
 export default function CrudPage<T extends { [key: string]: unknown }>({
-  title, fetchList, columns, idKey, onAdd, onEdit, onDelete, filters, filterParams, searchKey = 'search', extraActions,
-  deleteLabel = 'Xóa', deleteConfirmMessage = 'Bạn có chắc muốn xóa?',
+  title,
+  fetchList,
+  columns,
+  idKey,
+  onAdd,
+  onEdit,
+  onDelete,
+  filters,
+  filterParams,
+  searchKey = 'search',
+  extraActions,
+  deleteLabel = 'Xóa',
+  deleteConfirmMessage = 'Bạn có chắc chắn muốn xóa bản ghi này?',
 }: CrudPageProps<T>) {
   const [items, setItems] = useState<T[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
   const [error, setError] = useState('');
   const [deleting, setDeleting] = useState<unknown>(null);
@@ -44,7 +58,6 @@ export default function CrudPage<T extends { [key: string]: unknown }>({
       if (search) params[searchKey] = search;
       const res = await fetchList(params);
       setItems(res.items);
-      setTotalPages(res.totalPages);
       setTotalCount(res.totalCount);
     } catch (e) {
       setError(getApiErrorMessage(e, 'Không thể tải dữ liệu'));
@@ -64,7 +77,6 @@ export default function CrudPage<T extends { [key: string]: unknown }>({
   }, [load]);
 
   const handleDelete = async (row: T) => {
-    if (!window.confirm(deleteConfirmMessage)) return;
     setDeleting(row[idKey]);
     try {
       await onDelete(row);
@@ -76,77 +88,131 @@ export default function CrudPage<T extends { [key: string]: unknown }>({
     }
   };
 
+  const tableColumns = useMemo(() => [
+    ...columns.map(c => ({
+      key: c.key,
+      dataIndex: c.key,
+      title: c.header,
+      render: (_: unknown, record: T) => (c.render ? c.render(record) : String(record[c.key] ?? '—')),
+    })),
+    {
+      key: '__actions',
+      title: 'Thao tác',
+      width: 170,
+      render: (_: unknown, record: T) => (
+        <Space size="small">
+          {extraActions?.(record)}
+          <Tooltip title="Chỉnh sửa">
+            <Button
+              type="text"
+              size="small"
+              icon={<EditOutlined style={{ color: '#2563eb' }} />}
+              onClick={() => onEdit(record)}
+            >
+              Sửa
+            </Button>
+          </Tooltip>
+          <Popconfirm
+            title={deleteConfirmMessage}
+            okText="Xóa"
+            cancelText="Hủy"
+            okButtonProps={{ danger: true, loading: deleting === record[idKey] }}
+            onConfirm={() => handleDelete(record)}
+          >
+            <Tooltip title={deleteLabel}>
+              <Button
+                type="text"
+                danger
+                size="small"
+                icon={<DeleteOutlined />}
+                loading={deleting === record[idKey]}
+              >
+                {deleteLabel}
+              </Button>
+            </Tooltip>
+          </Popconfirm>
+        </Space>
+      ),
+    },
+  ], [columns, extraActions, onEdit, deleteConfirmMessage, deleteLabel, deleting, idKey]);
+
   return (
-    <div>
-      <div className="admin-topbar">
-        <h1>{title}</h1>
-        <span style={{ color: '#64748b', fontSize: '0.8rem' }}>{totalCount} bản ghi</span>
-      </div>
-      <div className="admin-content">
-        {error && <div className="alert alert-error" style={{ marginBottom: '1rem' }}>{error}</div>}
-        <div className="card">
-          <div className="card-body">
-            <div className="toolbar">
-              <input
-                className="search-input"
-                placeholder="Tìm kiếm…"
-                value={search}
-                onChange={e => { setSearch(e.target.value); setPage(1); }}
-              />
-              {filters}
-              <div className="spacer" />
-              <button className="btn btn-primary" onClick={onAdd}>+ Thêm mới</button>
-            </div>
-
-            <div className="table-wrapper">
-              {loading ? (
-                <div className="admin-loading">Đang tải…</div>
-              ) : items.length === 0 ? (
-                <div className="empty-state"><div className="icon">📭</div><div>Không có dữ liệu</div></div>
-              ) : (
-                <table>
-                  <thead>
-                    <tr>
-                      {columns.map(c => <th key={c.key}>{c.header}</th>)}
-                      <th>Thao tác</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {items.map(row => (
-                      <tr key={String(row[idKey])}>
-                        {columns.map(c => (
-                          <td key={c.key}>{c.render ? c.render(row) : String(row[c.key] ?? '')}</td>
-                        ))}
-                        <td>
-                          <div className="actions">
-                            {extraActions?.(row)}
-                            <button className="btn btn-secondary btn-sm" onClick={() => onEdit(row)}>✏️ Sửa</button>
-                            <button
-                              className="btn btn-danger btn-sm"
-                              onClick={() => handleDelete(row)}
-                              disabled={deleting === row[idKey]}
-                            >
-                              🗑️ {deleteLabel}
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
-            </div>
-
-            {totalPages > 1 && (
-              <div className="pagination">
-                <button className="btn btn-secondary btn-sm" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>← Trước</button>
-                <span>Trang {page} / {totalPages}</span>
-                <button className="btn btn-secondary btn-sm" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>Sau →</button>
-              </div>
-            )}
-          </div>
+    <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
+        <div>
+          <Title level={3} style={{ margin: 0, fontWeight: 800, color: '#0f172a' }}>
+            {title}
+          </Title>
+          <Text type="secondary" style={{ fontSize: '0.85rem' }}>
+            Quản lý và cập nhật danh mục học vụ
+          </Text>
         </div>
+        <Tag color="blue" style={{ fontSize: '0.85rem', padding: '0.25rem 0.75rem', borderRadius: 999 }}>
+          Tổng cộng: <strong>{totalCount}</strong> bản ghi
+        </Tag>
       </div>
-    </div>
+
+      {error && <Alert message={error} type="error" showIcon closable onClose={() => setError('')} />}
+
+      <Card
+        bordered={false}
+        style={{
+          borderRadius: 12,
+          boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
+        }}
+        bodyStyle={{ padding: '1.25rem' }}
+      >
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: '0.75rem',
+          marginBottom: '1.25rem',
+        }}>
+          <Space wrap size="middle">
+            <Input
+              prefix={<SearchOutlined style={{ color: '#94a3b8' }} />}
+              placeholder="Tìm kiếm…"
+              allowClear
+              value={search}
+              onChange={e => { setSearch(e.target.value); setPage(1); }}
+              style={{ width: 260 }}
+            />
+            {filters}
+            <Button
+              icon={<ReloadOutlined />}
+              onClick={() => load()}
+              title="Làm mới dữ liệu"
+            />
+          </Space>
+
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
+            onClick={onAdd}
+            style={{ fontWeight: 600 }}
+          >
+            Thêm mới
+          </Button>
+        </div>
+
+        <Table
+          rowKey={(record) => String(record[idKey])}
+          columns={tableColumns}
+          dataSource={items}
+          loading={loading}
+          pagination={{
+            current: page,
+            pageSize: 20,
+            total: totalCount,
+            onChange: (p) => setPage(p),
+            showTotal: (total) => `Tổng ${total} mục`,
+            showSizeChanger: false,
+          }}
+          scroll={{ x: 'max-content' }}
+        />
+      </Card>
+    </Space>
   );
 }

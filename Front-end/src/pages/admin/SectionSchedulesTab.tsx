@@ -1,11 +1,19 @@
 import { useEffect, useState, type FormEvent } from 'react';
+import { Table, Button, Input, Select, Space, Tag, Popconfirm, Alert, Card, Row, Col } from 'antd';
+import type { ColumnsType } from 'antd/es/table';
+import { PlusOutlined, EditOutlined, DeleteOutlined, ClockCircleOutlined, EnvironmentOutlined } from '@ant-design/icons';
 import { sectionsApi } from '../../api/services';
 import type { AdminClassScheduleDto, SaveAdminClassScheduleRequest } from '../../api/types';
 import { getApiErrorMessage } from '../../api/client';
 
 const DAYS: Record<number, string> = {
-  2: 'Thứ Hai', 3: 'Thứ Ba', 4: 'Thứ Tư', 5: 'Thứ Năm',
-  6: 'Thứ Sáu', 7: 'Thứ Bảy', 8: 'Chủ Nhật',
+  2: 'Thứ Hai',
+  3: 'Thứ Ba',
+  4: 'Thứ Tư',
+  5: 'Thứ Năm',
+  6: 'Thứ Sáu',
+  7: 'Thứ Bảy',
+  8: 'Chủ Nhật',
 };
 
 const EMPTY_SCHEDULE: SaveAdminClassScheduleRequest = {
@@ -19,7 +27,7 @@ const EMPTY_SCHEDULE: SaveAdminClassScheduleRequest = {
   note: '',
 };
 
-const toApiTime = (value: string) => value.length === 5 ? `${value}:00` : value;
+const toApiTime = (value: string) => (value.length === 5 ? `${value}:00` : value);
 const toInputTime = (value: string) => value.slice(0, 5);
 const formatDate = (value: string) => new Date(`${value}T00:00:00`).toLocaleDateString('vi-VN');
 
@@ -43,8 +51,12 @@ export default function SectionSchedulesTab({ sectionId }: { sectionId: number }
   };
 
   useEffect(() => {
-    void sectionsApi.schedules(sectionId)
-      .then(data => { setItems(data); setError(''); })
+    void sectionsApi
+      .schedules(sectionId)
+      .then(data => {
+        setItems(data);
+        setError('');
+      })
       .catch(e => setError(getApiErrorMessage(e)))
       .finally(() => setLoading(false));
   }, [sectionId]);
@@ -96,7 +108,6 @@ export default function SectionSchedulesTab({ sectionId }: { sectionId: number }
   };
 
   const remove = async (scheduleId: number) => {
-    if (!window.confirm('Xóa lịch học này?')) return;
     try {
       await sectionsApi.deleteSchedule(sectionId, scheduleId);
       if (editingId === scheduleId) resetForm();
@@ -106,74 +117,164 @@ export default function SectionSchedulesTab({ sectionId }: { sectionId: number }
     }
   };
 
-  return (
-    <div className="section-planning-tab">
-      <form className="section-planning-form" onSubmit={submit}>
-        <div className="form-group">
-          <label>Ngày học *</label>
-          <select value={form.dayOfWeek} onChange={e => setForm({ ...form, dayOfWeek: Number(e.target.value) })}>
-            {Object.entries(DAYS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-          </select>
-        </div>
-        <div className="form-group">
-          <label>Bắt đầu *</label>
-          <input type="time" required value={form.startTime} onChange={e => setForm({ ...form, startTime: e.target.value })} />
-        </div>
-        <div className="form-group">
-          <label>Kết thúc *</label>
-          <input type="time" required value={form.endTime} onChange={e => setForm({ ...form, endTime: e.target.value })} />
-        </div>
-        <div className="form-group">
-          <label>Phòng</label>
-          <input maxLength={50} value={form.room} onChange={e => setForm({ ...form, room: e.target.value })} placeholder="P.301" />
-        </div>
-        <div className="form-group">
-          <label>Tòa nhà</label>
-          <input maxLength={100} value={form.building} onChange={e => setForm({ ...form, building: e.target.value })} placeholder="Tòa A" />
-        </div>
-        <div className="form-group">
-          <label>Áp dụng từ *</label>
-          <input type="date" required value={form.effectiveFrom} onChange={e => setForm({ ...form, effectiveFrom: e.target.value })} />
-        </div>
-        <div className="form-group">
-          <label>Đến ngày *</label>
-          <input type="date" required value={form.effectiveTo} onChange={e => setForm({ ...form, effectiveTo: e.target.value })} />
-        </div>
-        <div className="form-group section-planning-note">
-          <label>Ghi chú</label>
-          <input maxLength={500} value={form.note} onChange={e => setForm({ ...form, note: e.target.value })} placeholder="Nội dung cần lưu ý" />
-        </div>
-        <div className="section-planning-actions">
-          <button className="btn btn-primary btn-sm" type="submit" disabled={saving}>
-            {saving ? 'Đang lưu…' : editingId === null ? '+ Thêm lịch học' : 'Lưu thay đổi'}
-          </button>
-          {editingId !== null && <button className="btn btn-secondary btn-sm" type="button" onClick={resetForm}>Hủy sửa</button>}
-        </div>
-      </form>
+  const columns: ColumnsType<AdminClassScheduleDto> = [
+    {
+      title: 'Ngày học',
+      dataIndex: 'dayOfWeek',
+      key: 'dayOfWeek',
+      render: (day: number) => <Tag color="blue">{DAYS[day] ?? `Thứ ${day}`}</Tag>,
+    },
+    {
+      title: 'Thời gian',
+      key: 'time',
+      render: (_, record) => (
+        <Space size={4}>
+          <ClockCircleOutlined style={{ color: '#64748b' }} />
+          <span>{toInputTime(record.startTime)} – {toInputTime(record.endTime)}</span>
+        </Space>
+      ),
+    },
+    {
+      title: 'Phòng học',
+      key: 'room',
+      render: (_, record) => (
+        <Space size={4}>
+          <EnvironmentOutlined style={{ color: '#64748b' }} />
+          <span>{[record.room, record.building].filter(Boolean).join(' · ') || '—'}</span>
+        </Space>
+      ),
+    },
+    {
+      title: 'Thời gian áp dụng',
+      key: 'effective',
+      render: (_, record) => `${formatDate(record.effectiveFrom)} – ${formatDate(record.effectiveTo)}`,
+    },
+    {
+      title: 'Ghi chú',
+      dataIndex: 'note',
+      key: 'note',
+      render: (note?: string | null) => note || '—',
+    },
+    {
+      title: 'Thao tác',
+      key: 'action',
+      width: 140,
+      render: (_, record) => (
+        <Space size={4}>
+          <Button size="small" icon={<EditOutlined />} onClick={() => edit(record)}>
+            Sửa
+          </Button>
+          <Popconfirm
+            title="Xóa lịch học này?"
+            onConfirm={() => void remove(record.scheduleId)}
+            okText="Xóa"
+            cancelText="Hủy"
+            okButtonProps={{ danger: true }}
+          >
+            <Button size="small" danger icon={<DeleteOutlined />} />
+          </Popconfirm>
+        </Space>
+      ),
+    },
+  ];
 
-      {error && <div className="alert alert-error">{error}</div>}
-      {loading ? <div className="admin-loading">Đang tải…</div> : (
-        <div className="table-wrapper">
-          <table>
-            <thead><tr><th>Ngày học</th><th>Thời gian</th><th>Phòng học</th><th>Thời gian áp dụng</th><th>Ghi chú</th><th>Thao tác</th></tr></thead>
-            <tbody>
-              {items.length === 0 ? <tr><td colSpan={6} className="section-empty-cell">Chưa có lịch học</td></tr> : items.map(item => (
-                <tr key={item.scheduleId}>
-                  <td>{DAYS[item.dayOfWeek]}</td>
-                  <td>{toInputTime(item.startTime)} – {toInputTime(item.endTime)}</td>
-                  <td>{[item.room, item.building].filter(Boolean).join(' · ') || '—'}</td>
-                  <td>{formatDate(item.effectiveFrom)} – {formatDate(item.effectiveTo)}</td>
-                  <td>{item.note || '—'}</td>
-                  <td className="section-row-actions">
-                    <button className="btn btn-secondary btn-sm" type="button" onClick={() => edit(item)}>Sửa</button>
-                    <button className="btn btn-danger btn-sm" type="button" onClick={() => void remove(item.scheduleId)}>Xóa</button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+  return (
+    <div>
+      <Card size="small" style={{ marginBottom: 16, background: '#f8fafc', borderRadius: 8 }}>
+        <form onSubmit={submit}>
+          <Row gutter={[12, 12]}>
+            <Col xs={24} sm={8} md={4}>
+              <label style={{ fontSize: 12, fontWeight: 600, display: 'block', marginBottom: 4 }}>Ngày học *</label>
+              <Select
+                style={{ width: '100%' }}
+                value={form.dayOfWeek}
+                onChange={val => setForm({ ...form, dayOfWeek: val })}
+                options={Object.entries(DAYS).map(([val, label]) => ({ value: Number(val), label }))}
+              />
+            </Col>
+            <Col xs={12} sm={8} md={4}>
+              <label style={{ fontSize: 12, fontWeight: 600, display: 'block', marginBottom: 4 }}>Bắt đầu *</label>
+              <Input
+                type="time"
+                required
+                value={form.startTime}
+                onChange={e => setForm({ ...form, startTime: e.target.value })}
+              />
+            </Col>
+            <Col xs={12} sm={8} md={4}>
+              <label style={{ fontSize: 12, fontWeight: 600, display: 'block', marginBottom: 4 }}>Kết thúc *</label>
+              <Input
+                type="time"
+                required
+                value={form.endTime}
+                onChange={e => setForm({ ...form, endTime: e.target.value })}
+              />
+            </Col>
+            <Col xs={12} sm={8} md={3}>
+              <label style={{ fontSize: 12, fontWeight: 600, display: 'block', marginBottom: 4 }}>Phòng</label>
+              <Input
+                placeholder="P.301"
+                maxLength={50}
+                value={form.room}
+                onChange={e => setForm({ ...form, room: e.target.value })}
+              />
+            </Col>
+            <Col xs={12} sm={8} md={3}>
+              <label style={{ fontSize: 12, fontWeight: 600, display: 'block', marginBottom: 4 }}>Tòa nhà</label>
+              <Input
+                placeholder="Tòa A"
+                maxLength={100}
+                value={form.building}
+                onChange={e => setForm({ ...form, building: e.target.value })}
+              />
+            </Col>
+            <Col xs={12} sm={8} md={3}>
+              <label style={{ fontSize: 12, fontWeight: 600, display: 'block', marginBottom: 4 }}>Áp dụng từ *</label>
+              <Input
+                type="date"
+                required
+                value={form.effectiveFrom}
+                onChange={e => setForm({ ...form, effectiveFrom: e.target.value })}
+              />
+            </Col>
+            <Col xs={12} sm={8} md={3}>
+              <label style={{ fontSize: 12, fontWeight: 600, display: 'block', marginBottom: 4 }}>Đến ngày *</label>
+              <Input
+                type="date"
+                required
+                value={form.effectiveTo}
+                onChange={e => setForm({ ...form, effectiveTo: e.target.value })}
+              />
+            </Col>
+            <Col xs={24} md={18}>
+              <label style={{ fontSize: 12, fontWeight: 600, display: 'block', marginBottom: 4 }}>Ghi chú</label>
+              <Input
+                placeholder="Nội dung cần lưu ý"
+                maxLength={500}
+                value={form.note}
+                onChange={e => setForm({ ...form, note: e.target.value })}
+              />
+            </Col>
+            <Col xs={24} md={6} style={{ display: 'flex', alignItems: 'flex-end', gap: 8 }}>
+              <Button type="primary" htmlType="submit" loading={saving} icon={editingId === null ? <PlusOutlined /> : undefined}>
+                {editingId === null ? 'Thêm lịch học' : 'Lưu thay đổi'}
+              </Button>
+              {editingId !== null && <Button onClick={resetForm}>Hủy sửa</Button>}
+            </Col>
+          </Row>
+        </form>
+      </Card>
+
+      {error && <Alert message={error} type="error" showIcon style={{ marginBottom: 16 }} />}
+
+      <Table
+        dataSource={items}
+        columns={columns}
+        rowKey="scheduleId"
+        loading={loading}
+        pagination={false}
+        size="small"
+      />
     </div>
   );
 }

@@ -1,26 +1,38 @@
 import { useState, useEffect } from 'react';
+import { Modal, Form, Input, Select, InputNumber, Button, Tag, Alert, Row, Col, Space } from 'antd';
+import { UsergroupAddOutlined } from '@ant-design/icons';
 import { getApiErrorMessage } from '../../api/client';
 import CrudPage from '../../components/CrudPage';
 import { sectionsApi, coursesApi, semestersApi } from '../../api/services';
 import type { AdminCourseSectionDto, AdminCourseDto, AdminSemesterDto, SaveAdminCourseSectionRequest } from '../../api/types';
 import SectionManagementModal from './SectionManagementModal';
 
-const STATUS_LABELS: Record<number, string> = { 0: 'Đóng', 1: 'Mở', 2: 'Kết thúc' };
-const STATUS_BADGES: Record<number, string> = { 0: 'badge-danger', 1: 'badge-success', 2: 'badge-gray' };
+const STATUS_CONFIG: Record<number, { label: string; color: string }> = {
+  0: { label: 'Đóng', color: 'error' },
+  1: { label: 'Mở', color: 'success' },
+  2: { label: 'Kết thúc', color: 'default' },
+};
 
-const empty: SaveAdminCourseSectionRequest = { courseId: 0, semesterId: 0, sectionCode: '', sectionName: '', maxStudents: 40, status: 1 };
+const empty: SaveAdminCourseSectionRequest = {
+  courseId: 0,
+  semesterId: 0,
+  sectionCode: '',
+  sectionName: '',
+  maxStudents: 40,
+  status: 1,
+};
 
 export default function CourseSectionsPage() {
   const [modal, setModal] = useState(false);
   const [editing, setEditing] = useState<AdminCourseSectionDto | null>(null);
-  const [form, setForm] = useState<SaveAdminCourseSectionRequest>(empty);
+  const [form] = Form.useForm<SaveAdminCourseSectionRequest>();
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState('');
   const [courses, setCourses] = useState<AdminCourseDto[]>([]);
   const [semesters, setSemesters] = useState<AdminSemesterDto[]>([]);
-  const [filterCourse, setFilterCourse] = useState('');
-  const [filterSemester, setFilterSemester] = useState('');
-  const [filterStatus, setFilterStatus] = useState('');
+  const [filterCourse, setFilterCourse] = useState<string>('');
+  const [filterSemester, setFilterSemester] = useState<string>('');
+  const [filterStatus, setFilterStatus] = useState<string>('');
   const [managingId, setManagingId] = useState<number | null>(null);
 
   useEffect(() => {
@@ -28,22 +40,42 @@ export default function CourseSectionsPage() {
     semestersApi.list({ pageSize: 50 }).then(r => setSemesters(r.items));
   }, []);
 
-  const openAdd = () => { setEditing(null); setForm(empty); setFormError(''); setModal(true); };
+  const openAdd = () => {
+    setEditing(null);
+    form.resetFields();
+    form.setFieldsValue(empty);
+    setFormError('');
+    setModal(true);
+  };
+
   const openEdit = (row: AdminCourseSectionDto) => {
     setEditing(row);
-    setForm({ courseId: row.courseId, semesterId: row.semesterId, sectionCode: row.sectionCode, sectionName: row.sectionName ?? '', maxStudents: row.maxStudents ?? 40, status: row.status });
-    setFormError(''); setModal(true);
+    form.setFieldsValue({
+      courseId: row.courseId,
+      semesterId: row.semesterId,
+      sectionCode: row.sectionCode,
+      sectionName: row.sectionName ?? '',
+      maxStudents: row.maxStudents ?? 40,
+      status: row.status,
+    });
+    setFormError('');
+    setModal(true);
   };
 
   const save = async () => {
-    setSaving(true); setFormError('');
     try {
-      if (editing) await sectionsApi.update(editing.sectionId, form);
-      else await sectionsApi.create(form);
+      const values = await form.validateFields();
+      setSaving(true);
+      setFormError('');
+      if (editing) await sectionsApi.update(editing.sectionId, values);
+      else await sectionsApi.create(values);
       setModal(false);
-    } catch (e) {
+    } catch (e: any) {
+      if (e?.errorFields) return;
       setFormError(getApiErrorMessage(e));
-    } finally { setSaving(false); }
+    } finally {
+      setSaving(false);
+    }
   };
 
   const filterParams: Record<string, string | number | boolean | undefined> = {};
@@ -62,89 +94,154 @@ export default function CourseSectionsPage() {
         idKey="sectionId"
         filterParams={filterParams}
         columns={[
-          { key: 'sectionCode', header: 'Mã lớp HP' },
-          { key: 'courseId', header: 'Môn học', render: r => <span>{courseName(r.courseId as number)}</span> },
-          { key: 'semesterId', header: 'Học kỳ', render: r => <span>{semesterName(r.semesterId as number)}</span> },
-          { key: 'maxStudents', header: 'Sĩ số tối đa' },
-          { key: 'status', header: 'Trạng thái', render: r => <span className={`badge ${STATUS_BADGES[r.status as number]}`}>{STATUS_LABELS[r.status as number]}</span> },
+          {
+            key: 'sectionCode',
+            header: 'Mã lớp HP',
+            render: r => <Tag color="blue">{String(r.sectionCode)}</Tag>,
+          },
+          {
+            key: 'courseId',
+            header: 'Môn học',
+            render: r => <span>{courseName(r.courseId as number)}</span>,
+          },
+          {
+            key: 'semesterId',
+            header: 'Học kỳ',
+            render: r => <span>{semesterName(r.semesterId as number)}</span>,
+          },
+          {
+            key: 'maxStudents',
+            header: 'Sĩ số tối đa',
+            render: r => <span>{r.maxStudents ?? '∞'}</span>,
+          },
+          {
+            key: 'status',
+            header: 'Trạng thái',
+            render: r => {
+              const info = STATUS_CONFIG[r.status as number] || { label: 'Khác', color: 'default' };
+              return <Tag color={info.color}>{info.label}</Tag>;
+            },
+          },
         ]}
-        filters={<>
-          <select value={filterSemester} onChange={e => setFilterSemester(e.target.value)}>
-            <option value="">-- Tất cả HK --</option>
-            {semesters.map(s => <option key={s.semesterId} value={s.semesterId}>{s.semesterName}</option>)}
-          </select>
-          <select value={filterCourse} onChange={e => setFilterCourse(e.target.value)}>
-            <option value="">-- Tất cả môn --</option>
-            {courses.map(c => <option key={c.courseId} value={c.courseId}>{c.courseName}</option>)}
-          </select>
-          <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
-            <option value="">-- Tất cả TT --</option>
-            <option value="0">Đóng</option>
-            <option value="1">Mở</option>
-            <option value="2">Kết thúc</option>
-          </select>
-        </>}
+        filters={
+          <Space wrap>
+            <Select
+              style={{ width: 180 }}
+              placeholder="Tất cả học kỳ"
+              value={filterSemester || undefined}
+              onChange={val => setFilterSemester(val ?? '')}
+              allowClear
+              options={semesters.map(s => ({ value: String(s.semesterId), label: s.semesterName }))}
+            />
+            <Select
+              showSearch
+              optionFilterProp="label"
+              style={{ width: 220 }}
+              placeholder="Tất cả môn học"
+              value={filterCourse || undefined}
+              onChange={val => setFilterCourse(val ?? '')}
+              allowClear
+              options={courses.map(c => ({ value: String(c.courseId), label: c.courseName }))}
+            />
+            <Select
+              style={{ width: 140 }}
+              placeholder="Trạng thái"
+              value={filterStatus !== '' ? filterStatus : undefined}
+              onChange={val => setFilterStatus(val ?? '')}
+              allowClear
+              options={[
+                { value: '1', label: 'Đang mở' },
+                { value: '0', label: 'Đã đóng' },
+                { value: '2', label: 'Kết thúc' },
+              ]}
+            />
+          </Space>
+        }
         extraActions={row => (
-          <button className="btn btn-secondary btn-sm" onClick={() => setManagingId(row.sectionId)}>👥 Quản lý</button>
+          <Button
+            size="small"
+            icon={<UsergroupAddOutlined />}
+            onClick={() => setManagingId(row.sectionId)}
+          >
+            Quản lý
+          </Button>
         )}
         onAdd={openAdd}
         onEdit={openEdit as never}
-        onDelete={async row => { await sectionsApi.delete(row.sectionId); }}
+        onDelete={async row => {
+          await sectionsApi.delete(row.sectionId);
+        }}
       />
 
-      {modal && (
-        <div className="modal-overlay" onClick={() => setModal(false)}>
-          <div className="modal" onClick={e => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>{editing ? 'Sửa lớp học phần' : 'Thêm lớp học phần'}</h3>
-              <button className="modal-close" onClick={() => setModal(false)}>×</button>
-            </div>
-            <div className="modal-body">
-              {formError && <div className="alert alert-error">{formError}</div>}
-              <div className="form-group">
-                <label>Môn học *</label>
-                <select value={form.courseId} onChange={e => setForm(f => ({ ...f, courseId: Number(e.target.value) }))}>
-                  <option value={0}>-- Chọn môn --</option>
-                  {courses.map(c => <option key={c.courseId} value={c.courseId}>{c.courseName}</option>)}
-                </select>
-              </div>
-              <div className="form-group">
-                <label>Học kỳ *</label>
-                <select value={form.semesterId} onChange={e => setForm(f => ({ ...f, semesterId: Number(e.target.value) }))}>
-                  <option value={0}>-- Chọn học kỳ --</option>
-                  {semesters.map(s => <option key={s.semesterId} value={s.semesterId}>{s.semesterName}</option>)}
-                </select>
-              </div>
-              <div className="form-row">
-                <div className="form-group">
-                  <label>Mã lớp HP *</label>
-                  <input value={form.sectionCode} onChange={e => setForm(f => ({ ...f, sectionCode: e.target.value }))} />
-                </div>
-                <div className="form-group">
-                  <label>Sĩ số tối đa</label>
-                  <input type="number" min={1} value={form.maxStudents ?? ''} onChange={e => setForm(f => ({ ...f, maxStudents: e.target.value ? Number(e.target.value) : undefined }))} />
-                </div>
-              </div>
-              <div className="form-group">
-                <label>Tên lớp HP</label>
-                <input value={form.sectionName ?? ''} onChange={e => setForm(f => ({ ...f, sectionName: e.target.value }))} />
-              </div>
-              <div className="form-group">
-                <label>Trạng thái *</label>
-                <select value={form.status} onChange={e => setForm(f => ({ ...f, status: Number(e.target.value) }))}>
-                  <option value={0}>Đóng</option>
-                  <option value={1}>Mở</option>
-                  <option value={2}>Kết thúc</option>
-                </select>
-              </div>
-            </div>
-            <div className="modal-footer">
-              <button className="btn btn-secondary" onClick={() => setModal(false)}>Hủy</button>
-              <button className="btn btn-primary" onClick={save} disabled={saving}>{saving ? 'Đang lưu…' : 'Lưu'}</button>
-            </div>
-          </div>
-        </div>
-      )}
+      <Modal
+        title={editing ? 'Sửa lớp học phần' : 'Thêm lớp học phần'}
+        open={modal}
+        onOk={save}
+        onCancel={() => setModal(false)}
+        confirmLoading={saving}
+        destroyOnClose
+        okText="Lưu"
+        cancelText="Hủy"
+        width={560}
+      >
+        {formError && <Alert message={formError} type="error" showIcon style={{ marginBottom: 16 }} />}
+        <Form form={form} layout="vertical">
+          <Form.Item
+            name="courseId"
+            label="Môn học"
+            rules={[{ required: true, message: 'Vui lòng chọn môn học' }]}
+          >
+            <Select
+              showSearch
+              optionFilterProp="label"
+              placeholder="-- Chọn môn học --"
+              options={courses.map(c => ({ value: c.courseId, label: `${c.courseCode} — ${c.courseName}` }))}
+            />
+          </Form.Item>
+
+          <Form.Item
+            name="semesterId"
+            label="Học kỳ"
+            rules={[{ required: true, message: 'Vui lòng chọn học kỳ' }]}
+          >
+            <Select
+              placeholder="-- Chọn học kỳ --"
+              options={semesters.map(s => ({ value: s.semesterId, label: `${s.semesterName} (${s.academicYear})` }))}
+            />
+          </Form.Item>
+
+          <Row gutter={16}>
+            <Col xs={24} sm={14}>
+              <Form.Item
+                name="sectionCode"
+                label="Mã lớp học phần"
+                rules={[{ required: true, message: 'Vui lòng nhập mã lớp HP' }]}
+              >
+                <Input placeholder="VD: CS101.01" />
+              </Form.Item>
+            </Col>
+            <Col xs={24} sm={10}>
+              <Form.Item name="maxStudents" label="Sĩ số tối đa">
+                <InputNumber min={1} style={{ width: '100%' }} />
+              </Form.Item>
+            </Col>
+          </Row>
+
+          <Form.Item name="sectionName" label="Tên lớp HP (nếu có)">
+            <Input placeholder="VD: Lớp lý thuyết sáng thứ 2" />
+          </Form.Item>
+
+          <Form.Item name="status" label="Trạng thái">
+            <Select
+              options={[
+                { value: 1, label: 'Mở' },
+                { value: 0, label: 'Đóng' },
+                { value: 2, label: 'Kết thúc' },
+              ]}
+            />
+          </Form.Item>
+        </Form>
+      </Modal>
 
       {managingId !== null && (
         <SectionManagementModal sectionId={managingId} onClose={() => setManagingId(null)} />

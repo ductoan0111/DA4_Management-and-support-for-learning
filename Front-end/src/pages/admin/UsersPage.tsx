@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react';
+import { Modal, Form, Input, Select, Switch, Tag, Alert, Row, Col, Space, Button } from 'antd';
+import { KeyOutlined } from '@ant-design/icons';
 import { getApiErrorMessage } from '../../api/client';
 import CrudPage from '../../components/CrudPage';
 import { usersApi } from '../../api/services';
@@ -9,24 +11,13 @@ export default function UsersPage() {
   const [pwdModal, setPwdModal] = useState(false);
   const [editing, setEditing] = useState<AdminUserDto | null>(null);
   const [roles, setRoles] = useState<AdminRoleDto[]>([]);
-  const [filterRole, setFilterRole] = useState('');
-  const [filterActive, setFilterActive] = useState('');
-  const [editRoleId, setEditRoleId] = useState(0);
+  const [filterRole, setFilterRole] = useState<string>('');
+  const [filterActive, setFilterActive] = useState<string>('');
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState('');
 
-  // Create form
-  const [createForm, setCreateForm] = useState<CreateAdminUserRequest>({
-    roleId: 0, username: '', email: '', password: '', fullName: '', phone: '', isActive: true,
-  });
-
-  // Update form
-  const [updateForm, setUpdateForm] = useState<UpdateAdminUserRequest>({
-    email: '', fullName: '', phone: '', isActive: true,
-  });
-
-  // Password form
-  const [newPassword, setNewPassword] = useState('');
+  const [form] = Form.useForm<any>();
+  const [pwdForm] = Form.useForm<{ password: string }>();
 
   useEffect(() => {
     usersApi.roles().then(setRoles);
@@ -34,47 +25,84 @@ export default function UsersPage() {
 
   const openAdd = () => {
     setEditing(null);
-    setCreateForm({ roleId: roles[0]?.roleId ?? 0, username: '', email: '', password: '', fullName: '', phone: '', isActive: true });
-    setFormError(''); setModal(true);
+    form.resetFields();
+    form.setFieldsValue({
+      roleId: roles[0]?.roleId ?? 0,
+      username: '',
+      email: '',
+      password: '',
+      fullName: '',
+      phone: '',
+      isActive: true,
+    });
+    setFormError('');
+    setModal(true);
   };
 
   const openEdit = (row: AdminUserDto) => {
     setEditing(row);
-    setEditRoleId(row.roleId);
-    setUpdateForm({ email: row.email, fullName: row.fullName, phone: row.phone ?? '', isActive: row.isActive });
-    setFormError(''); setModal(true);
+    form.setFieldsValue({
+      roleId: row.roleId,
+      username: row.username,
+      email: row.email,
+      fullName: row.fullName,
+      phone: row.phone ?? '',
+      isActive: row.isActive,
+    });
+    setFormError('');
+    setModal(true);
   };
 
   const openPwd = (row: AdminUserDto) => {
-    setEditing(row); setNewPassword(''); setFormError(''); setPwdModal(true);
+    setEditing(row);
+    pwdForm.resetFields();
+    setFormError('');
+    setPwdModal(true);
   };
 
   const save = async () => {
-    setSaving(true); setFormError('');
     try {
+      const values = await form.validateFields();
+      setSaving(true);
+      setFormError('');
       if (editing) {
-        await usersApi.update(editing.userId, updateForm);
-        if (editRoleId !== editing.roleId) {
-          await usersApi.setRole(editing.userId, { roleId: editRoleId });
+        await usersApi.update(editing.userId, {
+          email: values.email,
+          fullName: values.fullName,
+          phone: values.phone || undefined,
+          isActive: values.isActive,
+        } as UpdateAdminUserRequest);
+
+        if (values.roleId !== editing.roleId) {
+          await usersApi.setRole(editing.userId, { roleId: values.roleId });
         }
       } else {
-        await usersApi.create(createForm);
+        await usersApi.create(values as CreateAdminUserRequest);
       }
       setModal(false);
-    } catch (e) {
+      window.dispatchEvent(new Event('crud-refresh'));
+    } catch (e: any) {
+      if (e?.errorFields) return;
       setFormError(getApiErrorMessage(e));
-    } finally { setSaving(false); }
+    } finally {
+      setSaving(false);
+    }
   };
 
   const savePwd = async () => {
     if (!editing) return;
-    setSaving(true); setFormError('');
     try {
-      await usersApi.resetPassword(editing.userId, { password: newPassword });
+      const values = await pwdForm.validateFields();
+      setSaving(true);
+      setFormError('');
+      await usersApi.resetPassword(editing.userId, { password: values.password });
       setPwdModal(false);
-    } catch (e) {
+    } catch (e: any) {
+      if (e?.errorFields) return;
       setFormError(getApiErrorMessage(e));
-    } finally { setSaving(false); }
+    } finally {
+      setSaving(false);
+    }
   };
 
   const filterParams: Record<string, string | number | boolean | undefined> = {};
@@ -92,118 +120,177 @@ export default function UsersPage() {
           { key: 'username', header: 'Username' },
           { key: 'fullName', header: 'Họ tên' },
           { key: 'email', header: 'Email' },
-          { key: 'roleCode', header: 'Vai trò', render: r => <span className="badge badge-info">{r.roleCode as string}</span> },
-          { key: 'isActive', header: 'Trạng thái', render: r => <span className={`badge ${r.isActive ? 'badge-success' : 'badge-danger'}`}>{r.isActive ? 'Hoạt động' : 'Bị khóa'}</span> },
+          {
+            key: 'roleCode',
+            header: 'Vai trò',
+            render: r => <Tag color="blue">{String(r.roleCode)}</Tag>,
+          },
+          {
+            key: 'isActive',
+            header: 'Trạng thái',
+            render: r => (
+              <Tag color={r.isActive ? 'success' : 'error'}>
+                {r.isActive ? 'Hoạt động' : 'Bị khóa'}
+              </Tag>
+            ),
+          },
         ]}
-        filters={<>
-          <select value={filterRole} onChange={e => setFilterRole(e.target.value)}>
-            <option value="">-- Tất cả vai trò --</option>
-            {roles.map(r => <option key={r.roleId} value={r.roleId}>{r.roleName}</option>)}
-          </select>
-          <select value={filterActive} onChange={e => setFilterActive(e.target.value)}>
-            <option value="">-- Tất cả TT --</option>
-            <option value="true">Hoạt động</option>
-            <option value="false">Bị khóa</option>
-          </select>
-        </>}
+        filters={
+          <Space wrap>
+            <Select
+              style={{ width: 180 }}
+              placeholder="Tất cả vai trò"
+              allowClear
+              value={filterRole || undefined}
+              onChange={val => setFilterRole(val ?? '')}
+              options={roles.map(r => ({ value: String(r.roleId), label: `${r.roleName} (${r.roleCode})` }))}
+            />
+            <Select
+              style={{ width: 160 }}
+              placeholder="Tất cả trạng thái"
+              allowClear
+              value={filterActive !== '' ? filterActive : undefined}
+              onChange={val => setFilterActive(val ?? '')}
+              options={[
+                { value: 'true', label: 'Đang hoạt động' },
+                { value: 'false', label: 'Bị khóa' },
+              ]}
+            />
+          </Space>
+        }
         extraActions={row => (
-          <button className="btn btn-secondary btn-sm" onClick={() => openPwd(row as unknown as AdminUserDto)}>🔑 Mật khẩu</button>
+          <Button
+            size="small"
+            icon={<KeyOutlined />}
+            onClick={() => openPwd(row as unknown as AdminUserDto)}
+          >
+            Mật khẩu
+          </Button>
         )}
         onAdd={openAdd}
         onEdit={openEdit as never}
-        onDelete={async row => { await usersApi.update(row.userId, { email: row.email, fullName: row.fullName, phone: row.phone ?? undefined, isActive: false }); }}
+        onDelete={async row => {
+          await usersApi.update(row.userId, {
+            email: row.email,
+            fullName: row.fullName,
+            phone: row.phone ?? undefined,
+            isActive: false,
+          });
+        }}
         deleteLabel="Khóa"
         deleteConfirmMessage="Bạn có chắc muốn khóa tài khoản này?"
       />
 
-      {/* Create/Edit Modal */}
-      {modal && (
-        <div className="modal-overlay" onClick={() => setModal(false)}>
-          <div className="modal" onClick={e => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>{editing ? 'Sửa tài khoản' : 'Thêm tài khoản'}</h3>
-              <button className="modal-close" onClick={() => setModal(false)}>×</button>
-            </div>
-            <div className="modal-body">
-              {formError && <div className="alert alert-error">{formError}</div>}
-              {!editing && <>
-                <div className="form-row">
-                  <div className="form-group">
-                    <label>Tên đăng nhập *</label>
-                    <input value={createForm.username} onChange={e => setCreateForm(f => ({ ...f, username: e.target.value }))} />
-                  </div>
-                  <div className="form-group">
-                    <label>Mật khẩu * (≥12 ký tự)</label>
-                    <input type="password" value={createForm.password} onChange={e => setCreateForm(f => ({ ...f, password: e.target.value }))} />
-                  </div>
-                </div>
-              </>}
-              <div className="form-group">
-                <label>Vai trò *</label>
-                <select
-                  value={editing ? editRoleId : createForm.roleId}
-                  onChange={e => editing
-                    ? setEditRoleId(Number(e.target.value))
-                    : setCreateForm(f => ({ ...f, roleId: Number(e.target.value) }))}
+      {/* Create / Edit User Modal */}
+      <Modal
+        title={editing ? `Sửa tài khoản: ${editing.username}` : 'Thêm tài khoản mới'}
+        open={modal}
+        onOk={save}
+        onCancel={() => setModal(false)}
+        confirmLoading={saving}
+        destroyOnClose
+        okText="Lưu"
+        cancelText="Hủy"
+        width={560}
+      >
+        {formError && <Alert message={formError} type="error" showIcon style={{ marginBottom: 16 }} />}
+        <Form form={form} layout="vertical">
+          {!editing && (
+            <Row gutter={16}>
+              <Col xs={24} sm={12}>
+                <Form.Item
+                  name="username"
+                  label="Tên đăng nhập"
+                  rules={[{ required: true, message: 'Vui lòng nhập tên đăng nhập' }]}
                 >
-                  <option value={0}>-- Chọn vai trò --</option>
-                  {roles.map(r => <option key={r.roleId} value={r.roleId}>{r.roleName} ({r.roleCode})</option>)}
-                </select>
-              </div>
-              <div className="form-group">
-                <label>Họ và tên *</label>
-                <input value={editing ? updateForm.fullName : createForm.fullName}
-                  onChange={e => editing ? setUpdateForm(f => ({ ...f, fullName: e.target.value })) : setCreateForm(f => ({ ...f, fullName: e.target.value }))} />
-              </div>
-              <div className="form-row">
-                <div className="form-group">
-                  <label>Email *</label>
-                  <input type="email" value={editing ? updateForm.email : createForm.email}
-                    onChange={e => editing ? setUpdateForm(f => ({ ...f, email: e.target.value })) : setCreateForm(f => ({ ...f, email: e.target.value }))} />
-                </div>
-                <div className="form-group">
-                  <label>Số điện thoại</label>
-                  <input value={editing ? (updateForm.phone ?? '') : (createForm.phone ?? '')}
-                    onChange={e => editing ? setUpdateForm(f => ({ ...f, phone: e.target.value })) : setCreateForm(f => ({ ...f, phone: e.target.value }))} />
-                </div>
-              </div>
-              <label className="checkbox-row">
-                <input type="checkbox"
-                  checked={editing ? updateForm.isActive : createForm.isActive}
-                  onChange={e => editing ? setUpdateForm(f => ({ ...f, isActive: e.target.checked })) : setCreateForm(f => ({ ...f, isActive: e.target.checked }))} />
-                Tài khoản hoạt động
-              </label>
-            </div>
-            <div className="modal-footer">
-              <button className="btn btn-secondary" onClick={() => setModal(false)}>Hủy</button>
-              <button className="btn btn-primary" onClick={save} disabled={saving}>{saving ? 'Đang lưu…' : 'Lưu'}</button>
-            </div>
-          </div>
-        </div>
-      )}
+                  <Input placeholder="VD: teacher01" />
+                </Form.Item>
+              </Col>
+              <Col xs={24} sm={12}>
+                <Form.Item
+                  name="password"
+                  label="Mật khẩu khởi tạo"
+                  rules={[
+                    { required: true, message: 'Vui lòng nhập mật khẩu' },
+                    { min: 6, message: 'Mật khẩu tối thiểu 6 ký tự' },
+                  ]}
+                >
+                  <Input.Password placeholder="Tối thiểu 6 ký tự" />
+                </Form.Item>
+              </Col>
+            </Row>
+          )}
+
+          <Form.Item
+            name="roleId"
+            label="Vai trò"
+            rules={[{ required: true, message: 'Vui lòng chọn vai trò' }]}
+          >
+            <Select
+              options={roles.map(r => ({ value: r.roleId, label: `${r.roleName} (${r.roleCode})` }))}
+            />
+          </Form.Item>
+
+          <Form.Item
+            name="fullName"
+            label="Họ và tên"
+            rules={[{ required: true, message: 'Vui lòng nhập họ tên' }]}
+          >
+            <Input placeholder="Nguyễn Văn A" />
+          </Form.Item>
+
+          <Row gutter={16}>
+            <Col xs={24} sm={14}>
+              <Form.Item
+                name="email"
+                label="Email"
+                rules={[
+                  { required: true, message: 'Vui lòng nhập email' },
+                  { type: 'email', message: 'Email không hợp lệ' },
+                ]}
+              >
+                <Input placeholder="email@example.com" />
+              </Form.Item>
+            </Col>
+            <Col xs={24} sm={10}>
+              <Form.Item name="phone" label="Số điện thoại">
+                <Input placeholder="0912345678" />
+              </Form.Item>
+            </Col>
+          </Row>
+
+          <Form.Item name="isActive" valuePropName="checked" style={{ marginBottom: 0 }}>
+            <Switch /> <span style={{ marginLeft: 8 }}>Tài khoản đang hoạt động</span>
+          </Form.Item>
+        </Form>
+      </Modal>
 
       {/* Password Reset Modal */}
-      {pwdModal && editing && (
-        <div className="modal-overlay" onClick={() => setPwdModal(false)}>
-          <div className="modal" style={{ maxWidth: 400 }} onClick={e => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>Đặt lại mật khẩu — {editing.username}</h3>
-              <button className="modal-close" onClick={() => setPwdModal(false)}>×</button>
-            </div>
-            <div className="modal-body">
-              {formError && <div className="alert alert-error">{formError}</div>}
-              <div className="form-group">
-                <label>Mật khẩu mới * (12–128 ký tự)</label>
-                <input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} autoFocus />
-              </div>
-            </div>
-            <div className="modal-footer">
-              <button className="btn btn-secondary" onClick={() => setPwdModal(false)}>Hủy</button>
-              <button className="btn btn-primary" onClick={savePwd} disabled={saving}>{saving ? 'Đang lưu…' : 'Đặt mật khẩu'}</button>
-            </div>
-          </div>
-        </div>
-      )}
+      <Modal
+        title={`Đặt lại mật khẩu: ${editing?.username}`}
+        open={pwdModal}
+        onOk={savePwd}
+        onCancel={() => setPwdModal(false)}
+        confirmLoading={saving}
+        destroyOnClose
+        okText="Đặt mật khẩu"
+        cancelText="Hủy"
+        width={420}
+      >
+        {formError && <Alert message={formError} type="error" showIcon style={{ marginBottom: 16 }} />}
+        <Form form={pwdForm} layout="vertical">
+          <Form.Item
+            name="password"
+            label="Mật khẩu mới"
+            rules={[
+              { required: true, message: 'Vui lòng nhập mật khẩu mới' },
+              { min: 6, message: 'Mật khẩu tối thiểu 6 ký tự' },
+            ]}
+          >
+            <Input.Password placeholder="Nhập mật khẩu mới" autoFocus />
+          </Form.Item>
+        </Form>
+      </Modal>
     </>
   );
 }
