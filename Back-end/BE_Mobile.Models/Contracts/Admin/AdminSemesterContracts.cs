@@ -1,7 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 namespace BE_Mobile.Contracts.Admin;
 
-public sealed record AdminSemesterDto(int SemesterId, string SemesterCode, string SemesterName, string AcademicYear, DateOnly StartDate, DateOnly EndDate, bool IsCurrent);
+public sealed record AdminSemesterDto(int SemesterId, string SemesterCode, string SemesterName, string AcademicYear, DateOnly StartDate, DateOnly EndDate, bool IsCurrent, string Status = "current");
 
 public sealed class SaveAdminSemesterRequest : IValidatableObject
 {
@@ -23,4 +23,5 @@ public sealed class AdminSemesterQuery
     [Range(1, 1000000)] public int Page { get; set; } = 1;
     [Range(1, 100)] public int PageSize { get; set; } = 20;
     public bool? IsCurrent { get; set; }
+    [StringLength(20)] public string? Status { get; set; }
 }

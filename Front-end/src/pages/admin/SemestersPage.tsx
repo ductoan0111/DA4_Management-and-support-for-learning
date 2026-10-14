@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Modal, Form, Input, Switch, Tag, Alert, Row, Col } from 'antd';
+import { useState, useMemo } from 'react';
+import { Modal, Form, Input, Switch, Tag, Alert, Row, Col, Select } from 'antd';
 import { getApiErrorMessage } from '../../api/client';
 import CrudPage from '../../components/CrudPage';
 import { semestersApi } from '../../api/services';
@@ -14,12 +14,141 @@ const empty: SaveAdminSemesterRequest = {
   isCurrent: false,
 };
 
+function getSemesterStatus(r: AdminSemesterDto) {
+  // If backend provided status property
+  if (r.status === 'current') {
+    return {
+      label: '✓ Hiện tại',
+      color: 'success',
+      style: {
+        borderRadius: 999,
+        padding: '2px 10px',
+        fontWeight: 600,
+        background: '#ecfdf5',
+        color: '#059669',
+        border: '1px solid #a7f3d0',
+      },
+    };
+  }
+  if (r.status === 'finished') {
+    return {
+      label: '⏹ Kết thúc',
+      color: 'default',
+      style: {
+        borderRadius: 999,
+        padding: '2px 10px',
+        fontWeight: 600,
+        background: '#f8fafc',
+        color: '#64748b',
+        border: '1px solid #e2e8f0',
+      },
+    };
+  }
+  if (r.status === 'upcoming') {
+    return {
+      label: '⏳ Sắp tới',
+      color: 'processing',
+      style: {
+        borderRadius: 999,
+        padding: '2px 10px',
+        fontWeight: 600,
+        background: '#eff6ff',
+        color: '#2563eb',
+        border: '1px solid #bfdbfe',
+      },
+    };
+  }
+
+  // Fallback calculation based on dates and isCurrent
+  if (r.isCurrent) {
+    return {
+      label: '✓ Hiện tại',
+      color: 'success',
+      style: {
+        borderRadius: 999,
+        padding: '2px 10px',
+        fontWeight: 600,
+        background: '#ecfdf5',
+        color: '#059669',
+        border: '1px solid #a7f3d0',
+      },
+    };
+  }
+
+  if (r.startDate && r.endDate) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const start = new Date(r.startDate);
+    start.setHours(0, 0, 0, 0);
+
+    const end = new Date(r.endDate);
+    end.setHours(23, 59, 59, 999);
+
+    if (today > end) {
+      return {
+        label: '⏹ Kết thúc',
+        color: 'default',
+        style: {
+          borderRadius: 999,
+          padding: '2px 10px',
+          fontWeight: 600,
+          background: '#f8fafc',
+          color: '#64748b',
+          border: '1px solid #e2e8f0',
+        },
+      };
+    }
+
+    if (today < start) {
+      return {
+        label: '⏳ Sắp tới',
+        color: 'processing',
+        style: {
+          borderRadius: 999,
+          padding: '2px 10px',
+          fontWeight: 600,
+          background: '#eff6ff',
+          color: '#2563eb',
+          border: '1px solid #bfdbfe',
+        },
+      };
+    }
+
+    return {
+      label: '✓ Hiện tại',
+      color: 'success',
+      style: {
+        borderRadius: 999,
+        padding: '2px 10px',
+        fontWeight: 600,
+        background: '#ecfdf5',
+        color: '#059669',
+        border: '1px solid #a7f3d0',
+      },
+    };
+  }
+
+  return {
+    label: '—',
+    color: 'default',
+    style: { borderRadius: 999, padding: '2px 10px' },
+  };
+}
+
 export default function SemestersPage() {
   const [modal, setModal] = useState(false);
   const [editing, setEditing] = useState<AdminSemesterDto | null>(null);
   const [form] = Form.useForm<SaveAdminSemesterRequest>();
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState('');
+  const [filterStatus, setFilterStatus] = useState<string | undefined>();
+
+  const filterParams = useMemo(() => {
+    const p: Record<string, string | number | boolean | undefined> = {};
+    if (filterStatus) p.status = filterStatus;
+    return p;
+  }, [filterStatus]);
 
   const openAdd = () => {
     setEditing(null);
@@ -64,8 +193,23 @@ export default function SemestersPage() {
     <>
       <CrudPage<AdminSemesterDto & { [key: string]: unknown }>
         title="Học kỳ"
-        fetchList={semestersApi.list as never}
+        fetchList={p => semestersApi.list({ ...p, ...filterParams }) as never}
         idKey="semesterId"
+        filterParams={filterParams}
+        filters={
+          <Select
+            allowClear
+            placeholder="Lọc theo trạng thái"
+            value={filterStatus}
+            onChange={setFilterStatus}
+            style={{ width: 170, borderRadius: 8 }}
+            options={[
+              { value: 'current', label: '✓ Hiện tại' },
+              { value: 'upcoming', label: '⏳ Sắp tới' },
+              { value: 'finished', label: '⏹ Kết thúc' },
+            ]}
+          />
+        }
         columns={[
           {
             key: 'semesterCode',
@@ -86,9 +230,15 @@ export default function SemestersPage() {
           },
           {
             key: 'isCurrent',
-            header: 'Hiện tại',
-            render: r =>
-              r.isCurrent ? <Tag color="success">✓ Hiện tại</Tag> : <Tag color="default">—</Tag>,
+            header: 'Trạng thái',
+            render: r => {
+              const info = getSemesterStatus(r as AdminSemesterDto);
+              return (
+                <Tag color={info.color} style={info.style}>
+                  {info.label}
+                </Tag>
+              );
+            },
           },
         ]}
         onAdd={openAdd}
@@ -161,9 +311,12 @@ export default function SemestersPage() {
             </Col>
           </Row>
 
-          <Form.Item name="isCurrent" valuePropName="checked" style={{ marginBottom: 0 }}>
-            <Switch /> <span style={{ marginLeft: 8 }}>Đặt làm học kỳ hiện tại</span>
+          <Form.Item name="isCurrent" valuePropName="checked" style={{ marginBottom: 4 }}>
+            <Switch /> <span style={{ marginLeft: 8, fontWeight: 600 }}>Đặt làm học kỳ hiện tại</span>
           </Form.Item>
+          <div style={{ fontSize: '0.78rem', color: '#64748b', marginLeft: 52 }}>
+            Trạng thái tự động: <b>Hiện tại</b> (trong thời gian học kỳ), <b>Sắp tới</b> (chưa đến ngày bắt đầu), <b>Kết thúc</b> (đã qua ngày kết thúc). Bật tùy chọn trên để ưu tiên làm học kỳ hiện tại.
+          </div>
         </Form>
       </Modal>
     </>

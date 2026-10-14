@@ -147,6 +147,7 @@ export interface AdminSemesterDto {
   startDate: string;
   endDate: string;
   isCurrent: boolean;
+  status?: 'current' | 'finished' | 'upcoming' | string;
 }
 
 export interface SaveAdminSemesterRequest {

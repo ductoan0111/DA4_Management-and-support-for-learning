@@ -10,7 +10,14 @@ public sealed class AdminSemesterRepository(IDbConnectionFactory factory) : IAdm
 {
     private readonly AdminSql db = new(factory);
     private const string SelectSql = "SELECT SemesterId, SemesterCode, SemesterName, AcademicYear, StartDate, EndDate, IsCurrent FROM dbo.Semesters";
-    private const string FilterSql = "WHERE (@Search IS NULL OR SemesterCode LIKE @Search OR SemesterName LIKE @Search OR AcademicYear LIKE @Search) AND (@IsCurrent IS NULL OR IsCurrent = @IsCurrent)";
+    private const string FilterSql = """
+        WHERE (@Search IS NULL OR SemesterCode LIKE @Search OR SemesterName LIKE @Search OR AcademicYear LIKE @Search)
+        AND (@IsCurrent IS NULL OR IsCurrent = @IsCurrent)
+        AND (@Status IS NULL
+             OR (@Status = 'current' AND (IsCurrent = 1 OR CAST(GETDATE() AS DATE) BETWEEN StartDate AND EndDate))
+             OR (@Status = 'finished' AND (CAST(GETDATE() AS DATE) > EndDate AND IsCurrent = 0))
+             OR (@Status = 'upcoming' AND (CAST(GETDATE() AS DATE) < StartDate AND IsCurrent = 0)))
+        """;
 
     public async Task<PagedResult<AdminSemesterDto>> ListAsync(AdminSemesterQuery query, CancellationToken cancellationToken)
     {
@@ -18,6 +25,7 @@ public sealed class AdminSemesterRepository(IDbConnectionFactory factory) : IAdm
         {
             AdminSql.Add(p, "@Search", SqlDbType.NVarChar, string.IsNullOrWhiteSpace(query.Search) ? null : "%" + query.Search.Trim() + "%", 402);
             AdminSql.Add(p, "@IsCurrent", SqlDbType.Bit, query.IsCurrent);
+            AdminSql.Add(p, "@Status", SqlDbType.VarChar, string.IsNullOrWhiteSpace(query.Status) ? null : query.Status.Trim().ToLowerInvariant(), 20);
             AdminSql.Add(p, "@Offset", SqlDbType.Int, (query.Page - 1) * query.PageSize);
             AdminSql.Add(p, "@PageSize", SqlDbType.Int, query.PageSize);
         }
@@ -63,12 +71,35 @@ public sealed class AdminSemesterRepository(IDbConnectionFactory factory) : IAdm
         db.ExecuteAsync("DELETE FROM dbo.Semesters WHERE SemesterId = @Id;",
             p => AdminSql.Add(p, "@Id", SqlDbType.Int, id), cancellationToken);
 
-    private static AdminSemesterDto Read(SqlDataReader r) => new(
-        r.GetFieldValue<int>(r.GetOrdinal("SemesterId")),
-        r.GetFieldValue<string>(r.GetOrdinal("SemesterCode")),
-        r.GetFieldValue<string>(r.GetOrdinal("SemesterName")),
-        r.GetFieldValue<string>(r.GetOrdinal("AcademicYear")),
-        DateOnly.FromDateTime(r.GetDateTime(r.GetOrdinal("StartDate"))),
-        DateOnly.FromDateTime(r.GetDateTime(r.GetOrdinal("EndDate"))),
-        r.GetFieldValue<bool>(r.GetOrdinal("IsCurrent")));
+    private static AdminSemesterDto Read(SqlDataReader r)
+    {
+        var startDate = DateOnly.FromDateTime(r.GetDateTime(r.GetOrdinal("StartDate")));
+        var endDate = DateOnly.FromDateTime(r.GetDateTime(r.GetOrdinal("EndDate")));
+        var isCurrent = r.GetFieldValue<bool>(r.GetOrdinal("IsCurrent"));
+        var today = DateOnly.FromDateTime(DateTime.Today);
+
+        string status;
+        if (isCurrent || (today >= startDate && today <= endDate))
+        {
+            status = "current";
+        }
+        else if (today > endDate)
+        {
+            status = "finished";
+        }
+        else
+        {
+            status = "upcoming";
+        }
+
+        return new AdminSemesterDto(
+            r.GetFieldValue<int>(r.GetOrdinal("SemesterId")),
+            r.GetFieldValue<string>(r.GetOrdinal("SemesterCode")),
+            r.GetFieldValue<string>(r.GetOrdinal("SemesterName")),
+            r.GetFieldValue<string>(r.GetOrdinal("AcademicYear")),
+            startDate,
+            endDate,
+            isCurrent,
+            status);
+    }
 }
