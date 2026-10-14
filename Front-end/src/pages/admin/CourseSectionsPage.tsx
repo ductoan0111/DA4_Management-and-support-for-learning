@@ -90,7 +90,28 @@ export default function CourseSectionsPage() {
     <>
       <CrudPage<AdminCourseSectionDto & { [key: string]: unknown }>
         title="Lớp học phần"
-        fetchList={p => sectionsApi.list({ ...p, ...filterParams }) as never}
+        fetchList={async p => {
+          const res = await sectionsApi.list({ ...p, ...filterParams });
+          const needsCounts = res.items.some(item => item.enrolledStudents === undefined);
+          if (needsCounts) {
+            const counts = await Promise.all(
+              res.items.map(async item => {
+                try {
+                  const sRes = await sectionsApi.students(item.sectionId, 1, 1);
+                  return { id: item.sectionId, count: sRes.totalCount };
+                } catch {
+                  return { id: item.sectionId, count: 0 };
+                }
+              })
+            );
+            const countMap = new Map(counts.map(c => [c.id, c.count]));
+            res.items = res.items.map(item => ({
+              ...item,
+              enrolledStudents: countMap.get(item.sectionId) ?? 0,
+            }));
+          }
+          return res as never;
+        }}
         idKey="sectionId"
         filterParams={filterParams}
         columns={[
@@ -111,8 +132,26 @@ export default function CourseSectionsPage() {
           },
           {
             key: 'maxStudents',
-            header: 'Sĩ số tối đa',
-            render: r => <span>{r.maxStudents ?? '∞'}</span>,
+            header: 'Sĩ số',
+            render: r => {
+              const enrolled = (r as AdminCourseSectionDto).enrolledStudents ?? 0;
+              const max = r.maxStudents;
+              const isFull = max !== null && max !== undefined && enrolled >= max;
+              return (
+                <Tag
+                  color={isFull ? 'red' : enrolled > 0 ? 'blue' : 'default'}
+                  style={{
+                    borderRadius: 999,
+                    padding: '2px 10px',
+                    fontSize: '0.82rem',
+                    fontWeight: 700,
+                    boxShadow: enrolled > 0 ? '0 1px 3px rgba(37,99,235,0.15)' : 'none',
+                  }}
+                >
+                  <span style={{ color: isFull ? '#dc2626' : '#2563eb' }}>{enrolled}</span> / {max ?? '∞'}
+                </Tag>
+              );
+            },
           },
           {
             key: 'status',

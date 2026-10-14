@@ -167,6 +167,7 @@ export interface AdminCourseSectionDto {
   sectionName: string | null;
   maxStudents: number | null;
   status: number; // 0=closed,1=open,2=finished
+  enrolledStudents?: number;
 }
 
 export interface SaveAdminCourseSectionRequest {
