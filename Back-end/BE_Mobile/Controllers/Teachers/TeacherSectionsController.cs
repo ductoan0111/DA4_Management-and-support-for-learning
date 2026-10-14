@@ -65,4 +65,15 @@ public sealed class TeacherSectionsController(ITeacherSectionService teacherSect
         [FromQuery] long? sectionId,
         CancellationToken cancellationToken)
         => teacherSectionService.GetSchedule(teacherId, from, to, sectionId, cancellationToken);
+
+    /// <summary>Lịch thi của các lớp học phần được phân công cho giảng viên.</summary>
+    [HttpGet("exams")]
+    public Task<ActionResult<IReadOnlyList<TeacherExamDto>>> GetExams(
+        long teacherId,
+        [FromQuery] DateOnly? from,
+        [FromQuery] DateOnly? to,
+        [FromQuery] long? sectionId,
+        [FromQuery] byte? examType,
+        CancellationToken cancellationToken)
+        => teacherSectionService.GetExams(teacherId, from, to, sectionId, examType, cancellationToken);
 }

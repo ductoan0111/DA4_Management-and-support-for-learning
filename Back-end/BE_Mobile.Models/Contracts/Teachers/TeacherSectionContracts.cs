@@ -65,7 +65,8 @@ public sealed record TeacherSectionDetailDto(
     int? MaxStudents,
     int EnrolledCount,
     bool IsPrimary,
-    IReadOnlyList<TeacherScheduleDto> Schedules);
+    IReadOnlyList<TeacherScheduleDto> Schedules,
+    IReadOnlyList<TeacherExamDto> Exams);
 
 // ─── Thời khóa biểu / Lịch dạy ───────────────────────────────────────────────
 
@@ -83,3 +84,20 @@ public sealed record TeacherScheduleDto(
     DateOnly EffectiveFrom,
     DateOnly EffectiveTo,
     string? Note);
+
+// ─── Lịch thi ────────────────────────────────────────────────────────────────
+
+public sealed record TeacherExamDto(
+    long SectionId,
+    string SectionCode,
+    string CourseCode,
+    string CourseName,
+    long ExamId,
+    string ExamName,
+    byte ExamType,
+    DateOnly ExamDate,
+    string StartTime,
+    short DurationMinutes,
+    string? Room,
+    string? Note,
+    DateTime CreatedAt);
