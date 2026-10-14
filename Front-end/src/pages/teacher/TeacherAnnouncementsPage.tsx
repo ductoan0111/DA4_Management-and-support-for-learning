@@ -1,11 +1,23 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Card, Select, Tag, Button, Typography, Spin, Empty, Space, Row, Col } from 'antd';
+import {
+  ClockCircleOutlined,
+  ArrowRightOutlined,
+  CalendarOutlined,
+} from '@ant-design/icons';
 import { useTeacherAuth } from '../../contexts/TeacherAuthContext';
 import { teacherAnnouncementsApi, teacherSectionsApi } from '../../api/teacher-services';
 import type { TeacherAnnouncementDto, TeacherSectionDto } from '../../api/teacher-types';
 
-const ANN_TYPE: Record<number, string> = { 0: '📢 Chung', 1: '📝 Bài tập', 2: '📋 Thi cử', 3: 'ℹ️ Khác' };
-const ANN_COLOR: Record<number, string> = { 0: '#dbeafe', 1: '#fef9c3', 2: '#fee2e2', 3: '#f3e8ff' };
+const { Title, Text, Paragraph } = Typography;
+
+const ANN_CONFIG: Record<number, { label: string; color: string }> = {
+  0: { label: 'Chung', color: 'blue' },
+  1: { label: 'Bài tập', color: 'gold' },
+  2: { label: 'Thi cử', color: 'red' },
+  3: { label: 'Khác', color: 'purple' },
+};
 
 export default function TeacherAnnouncementsPage() {
   const { profile } = useTeacherAuth();
@@ -13,7 +25,7 @@ export default function TeacherAnnouncementsPage() {
   const [sections, setSections] = useState<TeacherSectionDto[]>([]);
   const [announcements, setAnnouncements] = useState<TeacherAnnouncementDto[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filterSection, setFilterSection] = useState('');
+  const [filterSection, setFilterSection] = useState<string>('');
 
   useEffect(() => {
     if (!profile) return;
@@ -23,64 +35,117 @@ export default function TeacherAnnouncementsPage() {
   useEffect(() => {
     if (!profile) return;
     setLoading(true);
-    teacherAnnouncementsApi.list(profile.teacherId, filterSection ? Number(filterSection) : undefined)
-      .then(setAnnouncements).finally(() => setLoading(false));
+    teacherAnnouncementsApi
+      .list(profile.teacherId, filterSection ? Number(filterSection) : undefined)
+      .then(setAnnouncements)
+      .finally(() => setLoading(false));
   }, [profile, filterSection]);
 
   return (
     <div>
-      <div className="teacher-topbar">
-        <h1>Thông báo</h1>
-        <select style={{ padding: '0.4rem 0.75rem', borderRadius: 6, border: '1px solid #d1d5db', fontSize: '0.875rem' }}
-          value={filterSection} onChange={e => setFilterSection(e.target.value)}>
-          <option value="">Tất cả lớp</option>
-          {sections.map(s => <option key={s.sectionId} value={s.sectionId}>{s.sectionCode}</option>)}
-        </select>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
+        <div>
+          <Title level={3} style={{ margin: 0 }}>Thông báo</Title>
+          <Text type="secondary">Tất cả thông báo đã phát tới sinh viên các lớp học phần</Text>
+        </div>
+        <Select
+          style={{ width: 240 }}
+          placeholder="Lọc theo lớp học phần"
+          value={filterSection}
+          onChange={setFilterSection}
+          options={[
+            { value: '', label: 'Tất cả lớp học phần' },
+            ...sections.map(s => ({
+              value: String(s.sectionId),
+              label: s.sectionCode,
+            })),
+          ]}
+        />
       </div>
-      <div className="teacher-content">
-        {loading ? <div className="admin-loading">Đang tải…</div> : announcements.length === 0 ? (
-          <div className="empty-state"><div className="icon">📢</div><div>Chưa có thông báo</div></div>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-            {announcements.map(a => (
-              <div key={a.announcementId} style={{
-                background: '#fff', borderRadius: 10, padding: '1.25rem',
-                boxShadow: '0 1px 3px rgba(0,0,0,.08)',
-                borderLeft: `4px solid ${ANN_COLOR[a.announcementType]}`,
-                opacity: a.isActive ? 1 : 0.6,
-              }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: 4 }}>
-                      <span style={{ background: ANN_COLOR[a.announcementType], padding: '0.15rem 0.5rem', borderRadius: 999, fontSize: '0.7rem', fontWeight: 600 }}>
-                        {ANN_TYPE[a.announcementType]}
-                      </span>
-                      {a.sectionCode && <span className="badge badge-info">{a.sectionCode}</span>}
-                      {!a.isActive && <span className="badge badge-gray">Ẩn</span>}
-                    </div>
-                    <div style={{ fontWeight: 700, fontSize: '1rem', color: '#1e293b' }}>{a.title}</div>
-                    <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: 2 }}>
-                      🕐 {new Date(a.publishedAt).toLocaleString('vi-VN')}
-                      {a.expiresAt && ` · Hết hạn: ${new Date(a.expiresAt).toLocaleString('vi-VN')}`}
-                    </div>
-                    <div style={{ marginTop: '0.5rem', color: '#374151', fontSize: '0.875rem', whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>
-                      {a.content.length > 200 ? a.content.substring(0, 200) + '…' : a.content}
-                    </div>
-                  </div>
-                  <div style={{ flexShrink: 0, marginLeft: '1rem' }}>
-                    {a.sectionId && (
-                      <button className="btn btn-secondary btn-sm"
-                        onClick={() => navigate(`/teacher/sections/${a.sectionId}`, { state: { tab: 'announcements' } })}>
-                        Xem lớp →
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+
+      {loading ? (
+        <div style={{ textAlign: 'center', padding: '60px 0' }}>
+          <Spin size="large" tip="Đang tải danh sách thông báo..." />
+        </div>
+      ) : announcements.length === 0 ? (
+        <Card>
+          <Empty description="Chưa có thông báo nào" />
+        </Card>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          {announcements.map(a => {
+            const typeInfo = ANN_CONFIG[a.announcementType] || { label: 'Khác', color: 'default' };
+
+            return (
+              <Card
+                key={a.announcementId}
+                hoverable
+                style={{
+                  borderRadius: 12,
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
+                  opacity: a.isActive ? 1 : 0.65,
+                }}
+              >
+                <Row gutter={[16, 16]} justify="space-between" align="top">
+                  <Col xs={24} md={18}>
+                    <Space size={8} wrap style={{ marginBottom: 8 }}>
+                      <Tag color={typeInfo.color}>{typeInfo.label}</Tag>
+                      {a.sectionCode && <Tag color="blue">{a.sectionCode}</Tag>}
+                      {!a.isActive && <Tag color="default">Đã ẩn</Tag>}
+                    </Space>
+
+                    <Title level={5} style={{ margin: '4px 0 8px' }}>
+                      {a.title}
+                    </Title>
+
+                    <Space wrap size={[16, 4]} style={{ fontSize: 12, color: '#64748b', marginBottom: 12 }}>
+                      <Space size={4}>
+                        <ClockCircleOutlined />
+                        <span>Đăng lúc: {new Date(a.publishedAt).toLocaleString('vi-VN')}</span>
+                      </Space>
+                      {a.expiresAt && (
+                        <Space size={4}>
+                          <CalendarOutlined />
+                          <span>Hết hạn: {new Date(a.expiresAt).toLocaleString('vi-VN')}</span>
+                        </Space>
+                      )}
+                    </Space>
+
+                    <Paragraph
+                      style={{
+                        whiteSpace: 'pre-wrap',
+                        color: '#334155',
+                        margin: 0,
+                        fontSize: 14,
+                        lineHeight: 1.6,
+                      }}
+                      ellipsis={{ rows: 3, expandable: true, symbol: 'Xem thêm' }}
+                    >
+                      {a.content}
+                    </Paragraph>
+                  </Col>
+
+                  {a.sectionId && (
+                    <Col xs={24} md={6} style={{ textAlign: 'right' }}>
+                      <Button
+                        type="default"
+                        icon={<ArrowRightOutlined />}
+                        onClick={() =>
+                          navigate(`/teacher/sections/${a.sectionId}`, {
+                            state: { tab: 'announcements' },
+                          })
+                        }
+                      >
+                        Xem lớp
+                      </Button>
+                    </Col>
+                  )}
+                </Row>
+              </Card>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

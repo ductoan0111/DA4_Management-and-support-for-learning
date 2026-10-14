@@ -1,11 +1,41 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Card, Row, Col, Input, Select, Tag, Button, Typography, Spin, Empty, Space } from 'antd';
+import {
+  FilePdfOutlined,
+  FileWordOutlined,
+  VideoCameraOutlined,
+  FilePptOutlined,
+  FolderOutlined,
+  DownloadOutlined,
+  LinkOutlined,
+  ArrowRightOutlined,
+  EyeOutlined,
+  EyeInvisibleOutlined,
+  CalendarOutlined,
+} from '@ant-design/icons';
 import { useTeacherAuth } from '../../contexts/TeacherAuthContext';
 import { teacherMaterialsApi, teacherSectionsApi } from '../../api/teacher-services';
 import type { TeacherMaterialDto, TeacherSectionDto } from '../../api/teacher-types';
 
-const MATERIAL_ICONS: Record<string, string> = {
-  slide: '📊', pdf: '📄', video: '🎬', doc: '📝', other: '📁',
+const { Title, Text, Paragraph } = Typography;
+
+const getMaterialIcon = (type?: string | null) => {
+  switch (type?.toLowerCase()) {
+    case 'slide':
+    case 'ppt':
+    case 'pptx':
+      return <FilePptOutlined style={{ fontSize: 28, color: '#ea580c' }} />;
+    case 'pdf':
+      return <FilePdfOutlined style={{ fontSize: 28, color: '#dc2626' }} />;
+    case 'video':
+      return <VideoCameraOutlined style={{ fontSize: 28, color: '#7c3aed' }} />;
+    case 'doc':
+    case 'docx':
+      return <FileWordOutlined style={{ fontSize: 28, color: '#2563eb' }} />;
+    default:
+      return <FolderOutlined style={{ fontSize: 28, color: '#059669' }} />;
+  }
 };
 
 export default function TeacherMaterialsPage() {
@@ -14,8 +44,8 @@ export default function TeacherMaterialsPage() {
   const [sections, setSections] = useState<TeacherSectionDto[]>([]);
   const [materials, setMaterials] = useState<TeacherMaterialDto[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filterSection, setFilterSection] = useState('');
-  const [search, setSearch] = useState('');
+  const [filterSection, setFilterSection] = useState<string>('');
+  const [search, setSearch] = useState<string>('');
 
   useEffect(() => {
     if (!profile) return;
@@ -27,60 +57,173 @@ export default function TeacherMaterialsPage() {
     const secs = filterSection ? [{ sectionId: Number(filterSection) }] : sections;
     setLoading(true);
     Promise.all(secs.map(s => teacherMaterialsApi.list(profile.teacherId, s.sectionId, search || undefined)))
-      .then(results => setMaterials(results.flat().sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())))
+      .then(results =>
+        setMaterials(
+          results.flat().sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+        )
+      )
       .finally(() => setLoading(false));
   }, [profile, sections, filterSection, search]);
 
   return (
     <div>
-      <div className="teacher-topbar">
-        <h1>Kho tài liệu</h1>
-        <div style={{ display: 'flex', gap: '0.5rem' }}>
-          <input style={{ padding: '0.4rem 0.75rem', borderRadius: 6, border: '1px solid #d1d5db', fontSize: '0.875rem' }}
-            placeholder="Tìm kiếm…" value={search} onChange={e => setSearch(e.target.value)} />
-          <select style={{ padding: '0.4rem 0.75rem', borderRadius: 6, border: '1px solid #d1d5db', fontSize: '0.875rem' }}
-            value={filterSection} onChange={e => setFilterSection(e.target.value)}>
-            <option value="">Tất cả lớp</option>
-            {sections.map(s => <option key={s.sectionId} value={s.sectionId}>{s.sectionCode}</option>)}
-          </select>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
+        <div>
+          <Title level={3} style={{ margin: 0 }}>Kho tài liệu</Title>
+          <Text type="secondary">Tất cả bài giảng, tài liệu tham khảo và học liệu cho sinh viên</Text>
         </div>
+        <Space wrap>
+          <Input.Search
+            placeholder="Tìm theo tên tài liệu..."
+            allowClear
+            style={{ width: 220 }}
+            onSearch={val => setSearch(val.trim())}
+          />
+          <Select
+            style={{ width: 200 }}
+            placeholder="Lọc theo lớp học phần"
+            value={filterSection}
+            onChange={setFilterSection}
+            options={[
+              { value: '', label: 'Tất cả lớp học phần' },
+              ...sections.map(s => ({
+                value: String(s.sectionId),
+                label: `${s.sectionCode} (${s.courseCode})`,
+              })),
+            ]}
+          />
+        </Space>
       </div>
-      <div className="teacher-content">
-        {loading ? <div className="admin-loading">Đang tải…</div> : materials.length === 0 ? (
-          <div className="empty-state"><div className="icon">📚</div><div>Không có tài liệu</div></div>
-        ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1rem' }}>
-            {materials.map(m => (
-              <div key={m.materialId} style={{ background: '#fff', borderRadius: 10, padding: '1.25rem', boxShadow: '0 1px 3px rgba(0,0,0,.08)' }}>
-                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem' }}>
-                  <div style={{ fontSize: '2rem', flexShrink: 0 }}>
-                    {MATERIAL_ICONS[m.materialType ?? 'other'] ?? '📁'}
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontWeight: 700, color: '#1e293b', marginBottom: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.title}</div>
-                    <div style={{ fontSize: '0.75rem', color: '#64748b' }}>📚 {m.courseCode} · {m.sectionCode}</div>
-                    {m.description && <div style={{ fontSize: '0.75rem', color: '#475569', marginTop: 4 }}>{m.description}</div>}
-                    <div style={{ marginTop: '0.625rem', display: 'flex', gap: '0.375rem', flexWrap: 'wrap', alignItems: 'center' }}>
-                      {m.fileUrl && <a href={m.fileUrl} target="_blank" rel="noopener noreferrer" className="btn btn-secondary btn-sm">📎 Tải file</a>}
-                      {m.externalUrl && <a href={m.externalUrl} target="_blank" rel="noopener noreferrer" className="btn btn-secondary btn-sm">🔗 Mở link</a>}
-                      <span className={`badge ${m.isVisible ? 'badge-success' : 'badge-gray'}`} style={{ marginLeft: 'auto' }}>
-                        {m.isVisible ? '👁️ Hiện' : '🙈 Ẩn'}
-                      </span>
+
+      {loading ? (
+        <div style={{ textAlign: 'center', padding: '60px 0' }}>
+          <Spin size="large" tip="Đang tải danh sách tài liệu..." />
+        </div>
+      ) : materials.length === 0 ? (
+        <Card>
+          <Empty description="Không có tài liệu nào" />
+        </Card>
+      ) : (
+        <Row gutter={[16, 16]}>
+          {materials.map(m => (
+            <Col xs={24} sm={12} lg={8} key={m.materialId}>
+              <Card
+                hoverable
+                style={{
+                  height: '100%',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  borderRadius: 12,
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
+                }}
+                styles={{
+                  body: {
+                    flex: 1,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'space-between',
+                    padding: 16,
+                  },
+                }}
+              >
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 8 }}>
+                    <div style={{ flexShrink: 0, padding: 6, background: '#f8fafc', borderRadius: 8 }}>
+                      {getMaterialIcon(m.materialType)}
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                        <Tag color="blue" style={{ margin: 0 }}>{m.sectionCode}</Tag>
+                        <Tag
+                          color={m.isVisible ? 'success' : 'default'}
+                          icon={m.isVisible ? <EyeOutlined /> : <EyeInvisibleOutlined />}
+                          style={{ margin: 0 }}
+                        >
+                          {m.isVisible ? 'Hiện' : 'Ẩn'}
+                        </Tag>
+                      </div>
+                      <Title
+                        level={5}
+                        ellipsis={{ rows: 2 }}
+                        style={{ margin: '8px 0 4px', fontSize: 14, lineHeight: 1.4 }}
+                      >
+                        {m.title}
+                      </Title>
+                      <Text type="secondary" style={{ fontSize: 12 }}>
+                        {m.courseCode}
+                      </Text>
                     </div>
                   </div>
+
+                  {m.description && (
+                    <Paragraph
+                      type="secondary"
+                      ellipsis={{ rows: 2 }}
+                      style={{ fontSize: 12, marginBottom: 12, color: '#64748b' }}
+                    >
+                      {m.description}
+                    </Paragraph>
+                  )}
+
+                  <Space wrap size={[6, 6]} style={{ marginBottom: 12 }}>
+                    {m.fileUrl && (
+                      <Button
+                        size="small"
+                        icon={<DownloadOutlined />}
+                        href={m.fileUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        Tải file
+                      </Button>
+                    )}
+                    {m.externalUrl && (
+                      <Button
+                        size="small"
+                        icon={<LinkOutlined />}
+                        href={m.externalUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        Liên kết
+                      </Button>
+                    )}
+                  </Space>
                 </div>
-                <div style={{ marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>{new Date(m.createdAt).toLocaleDateString('vi-VN')}</span>
-                  <button className="btn btn-secondary btn-sm"
-                    onClick={() => navigate(`/teacher/sections/${m.sectionId}`, { state: { tab: 'materials' } })}>
-                    Xem lớp →
-                  </button>
+
+                <div
+                  style={{
+                    borderTop: '1px solid #f1f5f9',
+                    paddingTop: 8,
+                    marginTop: 'auto',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                  }}
+                >
+                  <Space size={4} style={{ fontSize: 11, color: '#94a3b8' }}>
+                    <CalendarOutlined />
+                    <span>{new Date(m.createdAt).toLocaleDateString('vi-VN')}</span>
+                  </Space>
+
+                  <Button
+                    type="link"
+                    size="small"
+                    style={{ padding: 0 }}
+                    onClick={() =>
+                      navigate(`/teacher/sections/${m.sectionId}`, {
+                        state: { tab: 'materials' },
+                      })
+                    }
+                  >
+                    Xem lớp <ArrowRightOutlined style={{ fontSize: 10 }} />
+                  </Button>
                 </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+              </Card>
+            </Col>
+          ))}
+        </Row>
+      )}
     </div>
   );
 }
