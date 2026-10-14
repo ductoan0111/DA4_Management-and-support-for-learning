@@ -109,7 +109,11 @@ export interface TeacherSectionStudentDto {
   fullName: string;
   email: string;
   phone: string | null;
-  enrollmentStatus: number;
+  enrolledAt?: string;
+  status?: number;
+  enrollmentStatus?: number;
+  finalScore10?: number | null;
+  letterGrade?: string | null;
 }
 
 export interface TeacherSectionStudentDetailDto {

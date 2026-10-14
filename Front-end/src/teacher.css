@@ -102,3 +102,104 @@
 .teacher-login-header .icon { font-size: 3.5rem; margin-bottom: 0.75rem; }
 .teacher-login-header h1 { font-size: 1.5rem; font-weight: 800; color: #1e293b; margin: 0 0 0.25rem; }
 .teacher-login-header p { color: #64748b; font-size: 0.875rem; margin: 0; }
+
+/* ─── Modern Teacher Enhancements ────────────────────────────────────────── */
+.teacher-hero-banner {
+  background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 50%, #4f46e5 100%);
+  border-radius: 16px;
+  padding: 1.75rem 2rem;
+  color: #ffffff;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 10px 25px -5px rgba(37, 99, 235, 0.25), 0 8px 10px -6px rgba(37, 99, 235, 0.2);
+}
+
+.teacher-hero-banner::after {
+  content: '';
+  position: absolute;
+  top: -40px;
+  right: -40px;
+  width: 200px;
+  height: 200px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0) 70%);
+  pointer-events: none;
+}
+
+.teacher-stat-card {
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  border-radius: 14px !important;
+  overflow: hidden;
+  border: 1px solid #e2e8f0 !important;
+}
+
+.teacher-stat-card:hover {
+  transform: translateY(-4px) !important;
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.08) !important;
+  border-color: #bfdbfe !important;
+}
+
+.teacher-quick-btn {
+  transition: all 0.2s ease !important;
+  border-radius: 10px !important;
+  padding: 1rem !important;
+  cursor: pointer;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+}
+
+.teacher-quick-btn:hover {
+  border-color: #2563eb !important;
+  background: #eff6ff !important;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.12);
+}
+
+.schedule-today-slot {
+  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+  border: 1px solid #86efac;
+  border-radius: 10px;
+  padding: 0.75rem 1rem;
+  transition: all 0.2s;
+}
+
+.schedule-today-slot:hover {
+  box-shadow: 0 4px 12px rgba(22, 163, 74, 0.15);
+  border-color: #4ade80;
+}
+
+/* ─── Teacher Sider Menu Styling ─────────────────────────────────────────── */
+.teacher-sider .ant-menu {
+  padding: 0 10px !important;
+}
+
+.teacher-sider .ant-menu-item {
+  border-radius: 10px !important;
+  margin: 4px 0 !important;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  font-weight: 500;
+}
+
+.teacher-sider .ant-menu-item:hover:not(.ant-menu-item-selected) {
+  background: #f1f5f9 !important;
+  transform: translateX(3px);
+}
+
+.teacher-sider .ant-menu-item-selected {
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%) !important;
+  color: #ffffff !important;
+  font-weight: 700 !important;
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35) !important;
+}
+
+.teacher-sider .ant-menu-item-selected .ant-menu-item-icon,
+.teacher-sider .ant-menu-item-selected .ant-menu-item-icon svg,
+.teacher-sider .ant-menu-item-selected .ant-menu-title-content {
+  color: #ffffff !important;
+}
+
+.teacher-sider .ant-menu-item-group-title {
+  padding: 0.85rem 0.5rem 0.25rem 0.75rem !important;
+}
+
+

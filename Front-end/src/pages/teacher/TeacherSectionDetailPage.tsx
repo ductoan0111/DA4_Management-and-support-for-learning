@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   App,
   Card,
@@ -45,6 +45,7 @@ import {
   ExclamationCircleOutlined,
   StarFilled,
   EnvironmentOutlined,
+  ReloadOutlined,
 } from '@ant-design/icons';
 import { useTeacherAuth } from '../../contexts/TeacherAuthContext';
 import {
@@ -152,8 +153,10 @@ export default function TeacherSectionDetailPage() {
 
   const tid = profile?.teacherId ?? 0;
   const sid = Number(sectionId);
-
-  const [tab, setTab] = useState<Tab>('info');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const requestedTab = searchParams.get('tab') as Tab;
+  const initialTab = (['info', 'students', 'assignments', 'materials', 'grades', 'announcements'].includes(requestedTab) ? requestedTab : 'info') as Tab;
+  const [tab, setTab] = useState<Tab>(initialTab);
   const [section, setSection] = useState<TeacherSectionDetailDto | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -207,8 +210,30 @@ export default function TeacherSectionDetailPage() {
   const [gradeInput, setGradeInput] = useState('');
   const [gradeNote, setGradeNote] = useState('');
 
+  const [tabDataLoading, setTabDataLoading] = useState(false);
+  const [studentSearch, setStudentSearch] = useState('');
+
+  const fetchAllSectionData = useCallback(async () => {
+    if (!tid || !sid) return;
+    setTabDataLoading(true);
+    try {
+      await Promise.allSettled([
+        teacherStudentsApi.list(tid, sid).then(setStudents).catch(() => {}),
+        teacherAssignmentsApi.list(tid, sid).then(setAssignments).catch(() => {}),
+        teacherMaterialsApi.list(tid, sid).then(setMaterials).catch(() => {}),
+        teacherAnnouncementsApi.list(tid, sid).then(setAnnouncements).catch(() => {}),
+        teacherGradesApi.components(tid, sid).then(setGradeComponents).catch(() => {}),
+        teacherGradesApi.grades(tid, sid).then(setGrades).catch(() => {}),
+        teacherGradesApi.overview(tid, sid).then(setGradeOverview).catch(() => {}),
+      ]);
+    } finally {
+      setTabDataLoading(false);
+    }
+  }, [tid, sid]);
+
   useEffect(() => {
     if (!tid || !sid) return;
+    setLoading(true);
     teacherSectionsApi
       .get(tid, sid)
       .then(s => {
@@ -216,32 +241,47 @@ export default function TeacherSectionDetailPage() {
         setLoading(false);
       })
       .catch(() => setLoading(false));
-  }, [tid, sid]);
+
+    fetchAllSectionData();
+  }, [tid, sid, fetchAllSectionData]);
 
   const loadTabData = useCallback(async (t: Tab) => {
     if (!tid || !sid) return;
-    if (t === 'students') {
-      teacherStudentsApi.list(tid, sid).then(setStudents);
-    }
-    if (t === 'assignments') {
-      teacherAssignmentsApi.list(tid, sid).then(setAssignments);
-    }
-    if (t === 'materials') {
-      teacherMaterialsApi.list(tid, sid).then(setMaterials);
-    }
-    if (t === 'grades') {
-      teacherGradesApi.components(tid, sid).then(setGradeComponents);
-      teacherGradesApi.grades(tid, sid).then(setGrades);
-      teacherGradesApi.overview(tid, sid).then(setGradeOverview);
-    }
-    if (t === 'announcements') {
-      teacherAnnouncementsApi.list(tid, sid).then(setAnnouncements);
+    setTabDataLoading(true);
+    try {
+      if (t === 'students') {
+        const data = await teacherStudentsApi.list(tid, sid);
+        setStudents(data);
+      } else if (t === 'assignments') {
+        const data = await teacherAssignmentsApi.list(tid, sid);
+        setAssignments(data);
+      } else if (t === 'materials') {
+        const data = await teacherMaterialsApi.list(tid, sid);
+        setMaterials(data);
+      } else if (t === 'grades') {
+        const [comps, grds, ovw] = await Promise.all([
+          teacherGradesApi.components(tid, sid),
+          teacherGradesApi.grades(tid, sid),
+          teacherGradesApi.overview(tid, sid),
+        ]);
+        setGradeComponents(comps);
+        setGrades(grds);
+        setGradeOverview(ovw);
+      } else if (t === 'announcements') {
+        const data = await teacherAnnouncementsApi.list(tid, sid);
+        setAnnouncements(data);
+      }
+    } catch (e) {
+      console.error(`Error loading tab data for ${t}:`, e);
+    } finally {
+      setTabDataLoading(false);
     }
   }, [tid, sid]);
 
   const onTabChange = (key: string) => {
     const t = key as Tab;
     setTab(t);
+    setSearchParams({ tab: t });
     loadTabData(t);
   };
 
@@ -608,20 +648,35 @@ export default function TeacherSectionDetailPage() {
   const totalWeight = gradeComponents.reduce((s, c) => s + Number(c.weightPercent), 0);
   const statusInfo = STATUS_CONFIG[section.status] || { label: 'Khác', color: 'default' };
 
-  // Unique students for grades tab
-  const uniqueStudents = Array.from(
-    new Map(
-      grades.map(g => [g.studentId, { studentId: g.studentId, studentCode: g.studentCode, fullName: g.fullName }])
-    ).values()
-  );
+  // Unique students for grades tab: use enrolled students first, fallback to grades
+  const uniqueStudents = students.length > 0
+    ? students.map(s => ({ studentId: s.studentId, studentCode: s.studentCode, fullName: s.fullName }))
+    : Array.from(
+        new Map(
+          grades.map(g => [g.studentId, { studentId: g.studentId, studentCode: g.studentCode, fullName: g.fullName }])
+        ).values()
+      );
   const gradeMap = new Map(grades.map(g => [`${g.studentId}-${g.gradeComponentId}`, g]));
+
+  // Filtered students for students tab
+  const filteredStudents = students.filter(s => {
+    if (!studentSearch.trim()) return true;
+    const q = studentSearch.trim().toLowerCase();
+    return (
+      s.fullName?.toLowerCase().includes(q) ||
+      s.studentCode?.toLowerCase().includes(q) ||
+      s.email?.toLowerCase().includes(q) ||
+      s.phone?.includes(q)
+    );
+  });
 
   // Student list table columns
   const studentColumns: ColumnsType<TeacherSectionStudentDto> = [
     {
-      title: '#',
+      title: 'STT',
       key: 'index',
-      width: 50,
+      width: 65,
+      align: 'center',
       render: (_, __, index) => index + 1,
     },
     {
@@ -629,22 +684,30 @@ export default function TeacherSectionDetailPage() {
       dataIndex: 'studentCode',
       key: 'studentCode',
       width: 120,
-      render: (code: string) => <Tag color="blue">{code}</Tag>,
+      render: (code: string, record) => (
+        <a onClick={() => openStudentDetail(record.studentId)}>
+          <Tag color="blue" style={{ fontWeight: 600, cursor: 'pointer' }}>{code}</Tag>
+        </a>
+      ),
     },
     {
       title: 'Họ và tên',
       dataIndex: 'fullName',
       key: 'fullName',
       render: (name: string, record) => (
-        <a onClick={() => openStudentDetail(record.studentId)} style={{ fontWeight: 600 }}>
-          {name}
-        </a>
+        <Space>
+          <Avatar style={{ backgroundColor: '#2563eb' }}>{name?.charAt(0) || 'S'}</Avatar>
+          <a onClick={() => openStudentDetail(record.studentId)} style={{ fontWeight: 600, color: '#1e293b' }}>
+            {name}
+          </a>
+        </Space>
       ),
     },
     {
       title: 'Email',
       dataIndex: 'email',
       key: 'email',
+      render: (email: string) => <a href={`mailto:${email}`}>{email}</a>,
     },
     {
       title: 'Số điện thoại',
@@ -653,11 +716,46 @@ export default function TeacherSectionDetailPage() {
       render: (phone?: string | null) => phone || '—',
     },
     {
+      title: 'Ngày ghi danh',
+      dataIndex: 'enrolledAt',
+      key: 'enrolledAt',
+      render: (date?: string) => (date ? new Date(date).toLocaleDateString('vi-VN') : '—'),
+    },
+    {
+      title: 'Trạng thái',
+      key: 'status',
+      width: 120,
+      render: (_, record) => {
+        const st = record.status ?? record.enrollmentStatus ?? 1;
+        if (st === 1) return <Tag color="success">Đang học</Tag>;
+        if (st === 0) return <Tag color="warning">Chờ duyệt</Tag>;
+        if (st === 2) return <Tag color="processing">Hoàn thành</Tag>;
+        return <Tag color="default">Khác</Tag>;
+      },
+    },
+    {
+      title: 'Điểm tổng kết',
+      key: 'finalScore',
+      width: 130,
+      align: 'center',
+      render: (_, record) => {
+        if (record.finalScore10 !== null && record.finalScore10 !== undefined) {
+          return (
+            <Tag color={getLetterTagColor(record.letterGrade)}>
+              {record.finalScore10.toFixed(1)} {record.letterGrade ? `(${record.letterGrade})` : ''}
+            </Tag>
+          );
+        }
+        return <Text type="secondary">—</Text>;
+      },
+    },
+    {
       title: 'Thao tác',
       key: 'action',
       width: 120,
+      align: 'center',
       render: (_, record) => (
-        <Button size="small" icon={<UserOutlined />} onClick={() => openStudentDetail(record.studentId)}>
+        <Button size="small" type="primary" ghost icon={<UserOutlined />} onClick={() => openStudentDetail(record.studentId)}>
           Xem hồ sơ
         </Button>
       ),
@@ -682,10 +780,22 @@ export default function TeacherSectionDetailPage() {
             </Space>
           </Col>
           <Col>
-            <Space size={16} wrap style={{ color: '#64748b', fontSize: 13 }}>
+            <Space size={16} wrap align="center" style={{ color: '#64748b', fontSize: 13 }}>
               <span>📅 {section.semesterName} ({section.academicYear})</span>
               <span>📚 {section.credits} tín chỉ</span>
-              <span>👥 <strong>{section.enrolledCount}</strong>/{section.maxStudents ?? '∞'} sinh viên</span>
+              <span>👥 <strong>{students.length || section.enrolledCount}</strong>/{section.maxStudents ?? '∞'} sinh viên</span>
+              <Button
+                icon={<ReloadOutlined />}
+                loading={tabDataLoading}
+                onClick={() => {
+                  message.loading({ content: 'Đang làm mới dữ liệu...', key: 'refreshing' });
+                  fetchAllSectionData().then(() => {
+                    message.success({ content: 'Đã cập nhật dữ liệu mới nhất!', key: 'refreshing' });
+                  });
+                }}
+              >
+                Làm mới
+              </Button>
             </Space>
           </Col>
         </Row>
@@ -810,12 +920,28 @@ export default function TeacherSectionDetailPage() {
               label: `🎓 Sinh viên (${students.length})`,
               children: (
                 <div>
-                  <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <Text type="secondary">Danh sách sinh viên chính thức trong lớp học phần</Text>
-                    <Tag color="blue">{students.length} sinh viên</Tag>
+                  <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
+                    <Space size={12} wrap>
+                      <Input.Search
+                        placeholder="Tìm mã SV, họ tên, email..."
+                        allowClear
+                        value={studentSearch}
+                        onChange={e => setStudentSearch(e.target.value)}
+                        style={{ width: 280 }}
+                      />
+                      <Tag color="blue">{filteredStudents.length} / {students.length} sinh viên</Tag>
+                    </Space>
+                    <Button
+                      icon={<ReloadOutlined />}
+                      loading={tabDataLoading}
+                      onClick={() => loadTabData('students')}
+                    >
+                      Tải lại danh sách
+                    </Button>
                   </div>
                   <Table
-                    dataSource={students}
+                    loading={tabDataLoading}
+                    dataSource={filteredStudents}
                     columns={studentColumns}
                     rowKey="studentId"
                     pagination={{ pageSize: 10, showSizeChanger: true }}
@@ -829,14 +955,23 @@ export default function TeacherSectionDetailPage() {
               label: `📝 Bài tập (${assignments.length})`,
               children: (
                 <div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 12 }}>
                     <Text type="secondary">Quản lý các đề bài tập và chấm điểm bài nộp của sinh viên</Text>
-                    <Button type="primary" icon={<PlusOutlined />} onClick={openAddAssignment}>
-                      Tạo bài tập
-                    </Button>
+                    <Space>
+                      <Button icon={<ReloadOutlined />} loading={tabDataLoading} onClick={() => loadTabData('assignments')}>
+                        Làm mới
+                      </Button>
+                      <Button type="primary" icon={<PlusOutlined />} onClick={openAddAssignment}>
+                        Tạo bài tập
+                      </Button>
+                    </Space>
                   </div>
 
-                  {assignments.length === 0 ? (
+                  {tabDataLoading && assignments.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '40px 0' }}>
+                      <Spin size="large" tip="Đang tải danh sách bài tập..." />
+                    </div>
+                  ) : assignments.length === 0 ? (
                     <Empty description="Chưa có bài tập nào" />
                   ) : (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -906,14 +1041,23 @@ export default function TeacherSectionDetailPage() {
               label: `📚 Tài liệu (${materials.length})`,
               children: (
                 <div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 12 }}>
                     <Text type="secondary">Tài liệu, giáo trình, bài giảng tải lên cho sinh viên</Text>
-                    <Button type="primary" icon={<PlusOutlined />} onClick={openAddMaterial}>
-                      Thêm tài liệu
-                    </Button>
+                    <Space>
+                      <Button icon={<ReloadOutlined />} loading={tabDataLoading} onClick={() => loadTabData('materials')}>
+                        Làm mới
+                      </Button>
+                      <Button type="primary" icon={<PlusOutlined />} onClick={openAddMaterial}>
+                        Thêm tài liệu
+                      </Button>
+                    </Space>
                   </div>
 
-                  {materials.length === 0 ? (
+                  {tabDataLoading && materials.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '40px 0' }}>
+                      <Spin size="large" tip="Đang tải danh sách tài liệu..." />
+                    </div>
+                  ) : materials.length === 0 ? (
                     <Empty description="Chưa có tài liệu nào" />
                   ) : (
                     <Row gutter={[16, 16]}>
@@ -1007,6 +1151,9 @@ export default function TeacherSectionDetailPage() {
                       </Col>
                       <Col>
                         <Space wrap>
+                          <Button icon={<ReloadOutlined />} loading={tabDataLoading} onClick={() => loadTabData('grades')}>
+                            Làm mới
+                          </Button>
                           <Button icon={<PlusOutlined />} onClick={openAddComponent}>
                             Thêm cột điểm
                           </Button>
@@ -1057,7 +1204,11 @@ export default function TeacherSectionDetailPage() {
                   </Card>
 
                   {/* Grades grid */}
-                  {gradeComponents.length === 0 ? (
+                  {tabDataLoading && uniqueStudents.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '40px 0' }}>
+                      <Spin size="large" tip="Đang tải dữ liệu sổ điểm..." />
+                    </div>
+                  ) : gradeComponents.length === 0 ? (
                     <Empty description="Chưa có thành phần điểm. Vui lòng bấm 'Thêm cột điểm' để thiết lập bảng điểm." />
                   ) : uniqueStudents.length === 0 ? (
                     <Empty description="Lớp chưa có sinh viên đăng ký để nhập điểm." />
@@ -1164,14 +1315,23 @@ export default function TeacherSectionDetailPage() {
               label: `📢 Thông báo (${announcements.length})`,
               children: (
                 <div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 12 }}>
                     <Text type="secondary">Thông báo dành riêng cho sinh viên lớp học phần này</Text>
-                    <Button type="primary" icon={<PlusOutlined />} onClick={openAddAnnouncement}>
-                      Gửi thông báo
-                    </Button>
+                    <Space>
+                      <Button icon={<ReloadOutlined />} loading={tabDataLoading} onClick={() => loadTabData('announcements')}>
+                        Làm mới
+                      </Button>
+                      <Button type="primary" icon={<PlusOutlined />} onClick={openAddAnnouncement}>
+                        Gửi thông báo
+                      </Button>
+                    </Space>
                   </div>
 
-                  {announcements.length === 0 ? (
+                  {tabDataLoading && announcements.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '40px 0' }}>
+                      <Spin size="large" tip="Đang tải thông báo..." />
+                    </div>
+                  ) : announcements.length === 0 ? (
                     <Empty description="Chưa có thông báo nào" />
                   ) : (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>

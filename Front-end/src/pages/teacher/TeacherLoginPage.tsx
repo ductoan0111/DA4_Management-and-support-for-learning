@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { Card, Form, Input, Button, Alert, Typography, Space, Divider } from 'antd';
-import { UserOutlined, LockOutlined, LoginOutlined, ExperimentOutlined } from '@ant-design/icons';
+import { useNavigate } from 'react-router-dom';
+import { Card, Form, Input, Button, Alert, Typography } from 'antd';
+import { UserOutlined, LockOutlined, LoginOutlined } from '@ant-design/icons';
 import { useTeacherAuth } from '../../contexts/TeacherAuthContext';
 
 const { Title, Text } = Typography;
@@ -30,10 +30,6 @@ export default function TeacherLoginPage() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const fillAccount = (username: string, pass: string) => {
-    form.setFieldsValue({ username, password: pass });
   };
 
   return (
@@ -110,7 +106,7 @@ export default function TeacherLoginPage() {
             />
           </Form.Item>
 
-          <Form.Item style={{ marginBottom: '1rem', marginTop: '1.5rem' }}>
+          <Form.Item style={{ marginBottom: 0, marginTop: '1.5rem' }}>
             <Button
               type="primary"
               htmlType="submit"
@@ -123,45 +119,6 @@ export default function TeacherLoginPage() {
             </Button>
           </Form.Item>
         </Form>
-
-        <div style={{
-          marginTop: '1rem',
-          padding: '0.875rem',
-          background: '#f8fafc',
-          borderRadius: 8,
-          border: '1px solid #e2e8f0',
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', marginBottom: '0.5rem', fontWeight: 600, color: '#334155', fontSize: '0.8rem' }}>
-            <ExperimentOutlined style={{ color: '#2563eb' }} /> Tài khoản mẫu thử nghiệm:
-          </div>
-          <Space wrap size="small">
-            <Button
-              size="small"
-              onClick={() => fillAccount('gv001', '123456')}
-              style={{ fontSize: '0.75rem' }}
-            >
-              ThS. Nguyễn Minh Anh (gv001)
-            </Button>
-            <Button
-              size="small"
-              onClick={() => fillAccount('gv002', '123456')}
-              style={{ fontSize: '0.75rem' }}
-            >
-              TS. Trần Quốc Huy (gv002)
-            </Button>
-          </Space>
-        </div>
-
-        <Divider style={{ margin: '1.25rem 0' }} />
-
-        <div style={{ textAlign: 'center' }}>
-          <Space>
-            <Text type="secondary" style={{ fontSize: '0.8rem' }}>Dành riêng cho giảng viên ·</Text>
-            <Link to="/admin/login" style={{ fontWeight: 600, color: '#2563eb', fontSize: '0.85rem' }}>
-              Cổng Quản trị Admin →
-            </Link>
-          </Space>
-        </div>
       </Card>
     </div>
   );

@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
-import { useLocation, useNavigate, Outlet, Link } from 'react-router-dom';
-import { Layout, Menu, Avatar, Dropdown, Button, Typography, Space, theme } from 'antd';
+import { useLocation, useNavigate, Outlet } from 'react-router-dom';
+import { Layout, Menu, Avatar, Dropdown, Button, Typography, Space } from 'antd';
 import type { MenuProps } from 'antd';
 import {
   HomeOutlined,
@@ -25,7 +25,6 @@ export default function TeacherLayout() {
   const navigate = useNavigate();
   const location = useLocation();
   const [collapsed, setCollapsed] = useState(false);
-  const { token } = theme.useToken();
 
   const handleLogout = () => {
     logout();
@@ -36,13 +35,44 @@ export default function TeacherLayout() {
     {
       key: 'user-info',
       label: (
-        <div style={{ padding: '0.25rem 0.5rem' }}>
-          <div style={{ fontWeight: 700, color: '#1e293b' }}>{profile?.fullName ?? 'Giảng viên'}</div>
-          <Text type="secondary" style={{ fontSize: '0.75rem' }}>
-            {profile?.academicTitle ? `${profile.academicTitle} · ` : ''}{profile?.teacherCode}
-          </Text>
-          <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: 2 }}>
-            {profile?.departmentName}
+        <div style={{ padding: '0.5rem 0.6rem', display: 'flex', alignItems: 'center', gap: 10 }}>
+          <Avatar
+            size={40}
+            src={profile?.avatarUrl}
+            icon={<UserOutlined />}
+            style={{
+              background: 'linear-gradient(135deg, #10b981 0%, #2563eb 100%)',
+              fontWeight: 800,
+              fontSize: '0.9rem',
+              flexShrink: 0,
+              border: '1px solid #e2e8f0',
+            }}
+          >
+            {profile?.fullName?.charAt(0)?.toUpperCase() ?? 'G'}
+          </Avatar>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '0.9rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {profile?.fullName ?? 'Giảng viên'}
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
+              <span style={{
+                background: '#eff6ff',
+                color: '#2563eb',
+                fontSize: '0.7rem',
+                fontWeight: 700,
+                padding: '1px 6px',
+                borderRadius: 4,
+                border: '1px solid #bfdbfe',
+              }}>
+                {profile?.academicTitle || 'Giảng viên'}
+              </span>
+              <Text type="secondary" style={{ fontSize: '0.75rem' }}>
+                Mã: {profile?.teacherCode}
+              </Text>
+            </div>
+            <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              🏛️ {profile?.departmentName}
+            </div>
           </div>
         </div>
       ),
@@ -51,20 +81,16 @@ export default function TeacherLayout() {
     { type: 'divider' },
     {
       key: 'profile-link',
-      icon: <UserOutlined />,
-      label: 'Hồ sơ cá nhân',
+      icon: <UserOutlined style={{ color: '#2563eb' }} />,
+      label: <span style={{ fontWeight: 600 }}>Hồ sơ cá nhân & Chuyên môn</span>,
       onClick: () => navigate('/teacher/profile'),
-    },
-    {
-      key: 'portal-admin',
-      label: <Link to="/admin">🎓 Cổng Quản trị Admin</Link>,
     },
     { type: 'divider' },
     {
       key: 'logout',
       danger: true,
       icon: <LogoutOutlined />,
-      label: 'Đăng xuất',
+      label: <span style={{ fontWeight: 600 }}>Đăng xuất</span>,
       onClick: handleLogout,
     },
   ];
@@ -72,23 +98,27 @@ export default function TeacherLayout() {
   const menuItems: MenuProps['items'] = useMemo(() => [
     {
       key: '/teacher',
-      icon: <HomeOutlined />,
-      label: 'Tổng quan giảng dạy',
+      icon: <HomeOutlined style={{ color: '#2563eb', fontSize: 17 }} />,
+      label: <span style={{ fontWeight: 600 }}>Tổng quan giảng dạy</span>,
       onClick: () => navigate('/teacher'),
     },
     {
       type: 'group',
-      label: collapsed ? null : 'LỚP HỌC PHẦN',
+      label: collapsed ? null : (
+        <span style={{ fontSize: '0.7rem', fontWeight: 800, color: '#059669', letterSpacing: '0.06em' }}>
+          LỚP HỌC PHẦN
+        </span>
+      ),
       children: [
         {
           key: '/teacher/sections',
-          icon: <AppstoreOutlined />,
+          icon: <AppstoreOutlined style={{ color: '#10b981', fontSize: 17 }} />,
           label: 'Lớp của tôi',
           onClick: () => navigate('/teacher/sections'),
         },
         {
           key: '/teacher/schedule',
-          icon: <CalendarOutlined />,
+          icon: <CalendarOutlined style={{ color: '#0891b2', fontSize: 17 }} />,
           label: 'Lịch dạy & Lịch thi',
           onClick: () => navigate('/teacher/schedule'),
         },
@@ -96,29 +126,33 @@ export default function TeacherLayout() {
     },
     {
       type: 'group',
-      label: collapsed ? null : 'QUẢN LÝ DẠY HỌC',
+      label: collapsed ? null : (
+        <span style={{ fontSize: '0.7rem', fontWeight: 800, color: '#d97706', letterSpacing: '0.06em' }}>
+          QUẢN LÝ DẠY HỌC
+        </span>
+      ),
       children: [
         {
           key: '/teacher/assignments',
-          icon: <FormOutlined />,
+          icon: <FormOutlined style={{ color: '#ea580c', fontSize: 17 }} />,
           label: 'Bài tập & Bài nộp',
           onClick: () => navigate('/teacher/assignments'),
         },
         {
           key: '/teacher/materials',
-          icon: <FolderOpenOutlined />,
+          icon: <FolderOpenOutlined style={{ color: '#f59e0b', fontSize: 17 }} />,
           label: 'Kho tài liệu môn học',
           onClick: () => navigate('/teacher/materials'),
         },
         {
           key: '/teacher/grades',
-          icon: <BarChartOutlined />,
+          icon: <BarChartOutlined style={{ color: '#7c3aed', fontSize: 17 }} />,
           label: 'Điểm số & Tổng kết',
           onClick: () => navigate('/teacher/grades'),
         },
         {
           key: '/teacher/announcements',
-          icon: <NotificationOutlined />,
+          icon: <NotificationOutlined style={{ color: '#e11d48', fontSize: 17 }} />,
           label: 'Thông báo lớp học',
           onClick: () => navigate('/teacher/announcements'),
         },
@@ -126,11 +160,15 @@ export default function TeacherLayout() {
     },
     {
       type: 'group',
-      label: collapsed ? null : 'CÁ NHÂN',
+      label: collapsed ? null : (
+        <span style={{ fontSize: '0.7rem', fontWeight: 800, color: '#4f46e5', letterSpacing: '0.06em' }}>
+          CÁ NHÂN
+        </span>
+      ),
       children: [
         {
           key: '/teacher/profile',
-          icon: <UserOutlined />,
+          icon: <UserOutlined style={{ color: '#6366f1', fontSize: 17 }} />,
           label: 'Hồ sơ giảng viên',
           onClick: () => navigate('/teacher/profile'),
         },
@@ -143,75 +181,140 @@ export default function TeacherLayout() {
     : location.pathname;
 
   return (
-    <Layout style={{ minHeight: '100vh' }}>
+    <Layout style={{ minHeight: '100vh', background: '#f8fafc' }}>
       <Sider
         collapsible
         collapsed={collapsed}
         onCollapse={setCollapsed}
         trigger={null}
-        width={250}
+        width={260}
         theme="light"
+        className="teacher-sider"
         style={{
-          borderRight: '1px solid #f1f5f9',
+          borderRight: '1px solid #e2e8f0',
           position: 'sticky',
           top: 0,
           height: '100vh',
           zIndex: 100,
-          boxShadow: '1px 0 8px rgba(0,0,0,0.03)',
+          boxShadow: '1px 0 10px rgba(0,0,0,0.03)',
+          display: 'flex',
+          flexDirection: 'column',
         }}
       >
         <div style={{
           height: 64,
           display: 'flex',
           alignItems: 'center',
-          padding: collapsed ? '0 1.25rem' : '0 1.5rem',
+          padding: collapsed ? '0 1rem' : '0 1.25rem',
           gap: '0.75rem',
-          borderBottom: '1px solid #f1f5f9',
+          borderBottom: '1px solid #e2e8f0',
           overflow: 'hidden',
           whiteSpace: 'nowrap',
+          flexShrink: 0,
         }}>
           <div style={{
-            width: 36,
-            height: 36,
-            borderRadius: 8,
-            background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
+            width: 38,
+            height: 38,
+            borderRadius: 10,
+            background: 'linear-gradient(135deg, #10b981 0%, #2563eb 100%)',
             color: '#fff',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             fontSize: '1.25rem',
             fontWeight: 800,
+            boxShadow: '0 4px 12px rgba(16,185,129,0.3)',
             flexShrink: 0,
           }}>
             🧑‍🏫
           </div>
           {!collapsed && (
             <div>
-              <div style={{ fontWeight: 800, fontSize: '0.95rem', color: '#0f172a', lineHeight: 1.2 }}>
-                Teacher Portal
+              <div style={{
+                fontWeight: 900,
+                fontSize: '1.05rem',
+                background: 'linear-gradient(135deg, #0f172a 0%, #2563eb 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                lineHeight: 1.2,
+                letterSpacing: '-0.02em',
+              }}>
+                EduTeacher
               </div>
-              <Text type="secondary" style={{ fontSize: '0.7rem', display: 'block', maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                {profile?.departmentName ?? 'Giảng dạy & Đào tạo'}
-              </Text>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
+                <span className="pulse-green" />
+                <Text type="secondary" style={{ fontSize: '0.72rem', fontWeight: 500 }}>
+                  Cổng Thông tin Giảng viên
+                </Text>
+              </div>
             </div>
           )}
         </div>
 
-        <div style={{ height: 'calc(100vh - 64px)', overflowY: 'auto', padding: '0.5rem 0' }}>
+        <div style={{ flex: 1, overflowY: 'auto', padding: '0.75rem 0' }}>
           <Menu
             mode="inline"
             selectedKeys={[selectedKey]}
             items={menuItems}
-            style={{ borderRight: 0 }}
+            style={{ borderRight: 0, background: 'transparent' }}
           />
         </div>
+
+        {!collapsed && profile && (
+          <div style={{
+            padding: '0.75rem 0.85rem',
+            margin: '0.75rem',
+            borderRadius: 12,
+            background: 'linear-gradient(135deg, #f0fdf4 0%, #eff6ff 100%)',
+            border: '1px solid #bbf7d0',
+            flexShrink: 0,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 10,
+          }}>
+            <Avatar
+              size={36}
+              src={profile.avatarUrl}
+              icon={<UserOutlined />}
+              style={{
+                backgroundColor: '#10b981',
+                fontWeight: 700,
+                flexShrink: 0,
+                border: '1px solid #bbf7d0',
+              }}
+            >
+              {profile.fullName.charAt(0)}
+            </Avatar>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 2 }}>
+                <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#166534', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {profile.academicTitle || 'Giảng viên'}
+                </span>
+                <span style={{
+                  fontSize: '0.65rem',
+                  background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                  color: '#fff',
+                  padding: '1px 6px',
+                  borderRadius: 999,
+                  fontWeight: 700,
+                  flexShrink: 0,
+                }}>
+                  {profile.teacherCode}
+                </span>
+              </div>
+              <div style={{ fontSize: '0.7rem', color: '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {profile.departmentName || 'Khoa Chuyên Môn'}
+              </div>
+            </div>
+          </div>
+        )}
       </Sider>
 
-      <Layout>
+      <Layout style={{ background: '#f8fafc' }}>
         <Header style={{
           padding: '0 1.5rem',
-          background: '#fff',
-          borderBottom: '1px solid #f1f5f9',
+          background: '#ffffff',
+          borderBottom: '1px solid #e2e8f0',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
@@ -219,34 +322,105 @@ export default function TeacherLayout() {
           top: 0,
           zIndex: 99,
           height: 64,
+          lineHeight: 'normal',
+          boxShadow: '0 1px 4px rgba(0,0,0,0.02)',
         }}>
-          <Button
-            type="text"
-            icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
-            onClick={() => setCollapsed(!collapsed)}
-            style={{ fontSize: '1.1rem', width: 40, height: 40 }}
-          />
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', lineHeight: 'normal' }}>
+            <Button
+              type="text"
+              icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
+              onClick={() => setCollapsed(!collapsed)}
+              style={{ fontSize: '1.15rem', width: 38, height: 38, borderRadius: 8, color: '#475569' }}
+            />
+            <div style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+              padding: '0.25rem 0.75rem',
+              borderRadius: 999,
+              background: '#f0fdf4',
+              border: '1px solid #bbf7d0',
+              color: '#166534',
+              fontSize: '0.78rem',
+              fontWeight: 600,
+              lineHeight: 1.4,
+            }}>
+              <span>🧑‍🏫</span>
+              <span>Cổng Quản lý Giảng dạy & Học phần</span>
+            </div>
+          </div>
 
-          <Space size="middle">
+          <Space size="middle" style={{ lineHeight: 'normal' }}>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              fontSize: '0.8rem',
+              color: '#64748b',
+              background: '#f1f5f9',
+              padding: '0.35rem 0.75rem',
+              borderRadius: 8,
+              border: '1px solid #e2e8f0',
+            }}>
+              <span>📅</span>
+              <span style={{ fontWeight: 500 }}>
+                {new Date().toLocaleDateString('vi-VN', { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' })}
+              </span>
+            </div>
+
             <Dropdown menu={{ items: userMenuItems }} placement="bottomRight" arrow>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', cursor: 'pointer', padding: '0.25rem 0.5rem', borderRadius: 8 }}>
-                <Avatar style={{ backgroundColor: token.colorPrimary, fontWeight: 700 }}>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.65rem',
+                cursor: 'pointer',
+                padding: '0.3rem 0.65rem',
+                borderRadius: 8,
+                border: '1px solid #e2e8f0',
+                background: '#ffffff',
+                lineHeight: 'normal',
+                transition: 'all 0.2s',
+              }}>
+                <Avatar
+                  size={36}
+                  src={profile?.avatarUrl}
+                  icon={<UserOutlined />}
+                  style={{
+                    background: 'linear-gradient(135deg, #10b981 0%, #2563eb 100%)',
+                    fontWeight: 800,
+                    fontSize: '0.85rem',
+                    boxShadow: '0 2px 8px rgba(16,185,129,0.3)',
+                    flexShrink: 0,
+                    border: '1px solid #e2e8f0',
+                  }}
+                >
                   {profile?.fullName?.charAt(0)?.toUpperCase() ?? 'G'}
                 </Avatar>
-                <div style={{ textAlign: 'left', display: 'flex', flexDirection: 'column' }}>
-                  <Text strong style={{ fontSize: '0.875rem', lineHeight: 1.2 }}>
+                <div style={{ textAlign: 'left', display: 'flex', flexDirection: 'column', gap: 2, lineHeight: 1 }}>
+                  <Text strong style={{ fontSize: '0.82rem', lineHeight: 1.2, color: '#0f172a' }}>
                     {profile?.fullName ?? 'Giảng viên'}
                   </Text>
-                  <Text type="secondary" style={{ fontSize: '0.7rem', lineHeight: 1.2 }}>
-                    {profile?.academicTitle ?? profile?.teacherCode ?? 'GIẢNG VIÊN'}
-                  </Text>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <span style={{
+                      display: 'inline-block',
+                      background: 'linear-gradient(135deg, #059669 0%, #10b981 100%)',
+                      color: '#ffffff',
+                      fontSize: '0.62rem',
+                      fontWeight: 800,
+                      padding: '1px 6px',
+                      borderRadius: 4,
+                      lineHeight: '14px',
+                    }}>
+                      {profile?.academicTitle || 'GIẢNG VIÊN'}
+                    </span>
+                  </div>
                 </div>
               </div>
             </Dropdown>
           </Space>
         </Header>
 
-        <Content style={{ margin: '1.5rem', minHeight: 280 }}>
+        <Content style={{ margin: '1.75rem', minHeight: 280 }}>
           <Outlet />
         </Content>
       </Layout>
