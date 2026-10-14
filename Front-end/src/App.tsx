@@ -44,8 +44,29 @@ export default function App() {
       theme={{
         token: {
           colorPrimary: '#2563eb',
-          borderRadius: 8,
+          colorSuccess: '#10b981',
+          colorWarning: '#f59e0b',
+          colorError: '#ef4444',
+          colorInfo: '#0284c7',
+          borderRadius: 10,
           fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
+        },
+        components: {
+          Menu: {
+            itemBorderRadius: 10,
+            itemMarginInline: 8,
+          },
+          Table: {
+            headerBg: '#f8fafc',
+            headerColor: '#334155',
+            rowHoverBg: '#f8fafc',
+          },
+          Card: {
+            borderRadiusLG: 14,
+          },
+          Button: {
+            borderRadius: 8,
+          },
         },
       }}
     >

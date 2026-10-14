@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
-import { Card, Table, Input, Button, Space, Popconfirm, Typography, Alert, Tag, Tooltip } from 'antd';
+import { Card, Table, Input, Button, Space, Popconfirm, Typography, Alert, Tooltip } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined, ReloadOutlined } from '@ant-design/icons';
 import { getApiErrorMessage } from '../api/client';
 
@@ -139,17 +139,33 @@ export default function CrudPage<T extends { [key: string]: unknown }>({
   return (
     <Space direction="vertical" size="middle" style={{ width: '100%' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
-        <div>
-          <Title level={3} style={{ margin: 0, fontWeight: 800, color: '#0f172a' }}>
-            {title}
-          </Title>
-          <Text type="secondary" style={{ fontSize: '0.85rem' }}>
-            Quản lý và cập nhật danh mục học vụ
-          </Text>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <span style={{ width: 4, height: 24, background: 'linear-gradient(180deg, #2563eb 0%, #7c3aed 100%)', borderRadius: 4 }} />
+          <div>
+            <Title level={3} style={{ margin: 0, fontWeight: 800, color: '#0f172a', letterSpacing: '-0.02em' }}>
+              {title}
+            </Title>
+            <Text type="secondary" style={{ fontSize: '0.82rem' }}>
+              Quản lý và cập nhật danh mục học vụ hệ thống
+            </Text>
+          </div>
         </div>
-        <Tag color="blue" style={{ fontSize: '0.85rem', padding: '0.25rem 0.75rem', borderRadius: 999 }}>
-          Tổng cộng: <strong>{totalCount}</strong> bản ghi
-        </Tag>
+        <div style={{
+          background: 'linear-gradient(135deg, #eff6ff 0%, #f5f3ff 100%)',
+          border: '1px solid #bfdbfe',
+          color: '#1e40af',
+          fontSize: '0.82rem',
+          padding: '0.35rem 0.95rem',
+          borderRadius: 999,
+          fontWeight: 600,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 6,
+          boxShadow: '0 1px 4px rgba(37,99,235,0.08)',
+        }}>
+          <span>📊</span>
+          <span>Tổng cộng: <strong style={{ color: '#2563eb' }}>{totalCount}</strong> bản ghi</span>
+        </div>
       </div>
 
       {error && <Alert message={error} type="error" showIcon closable onClose={() => setError('')} />}
@@ -157,8 +173,9 @@ export default function CrudPage<T extends { [key: string]: unknown }>({
       <Card
         bordered={false}
         style={{
-          borderRadius: 12,
-          boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
+          borderRadius: 14,
+          border: '1px solid #e2e8f0',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
         }}
         bodyStyle={{ padding: '1.25rem' }}
       >
@@ -177,13 +194,14 @@ export default function CrudPage<T extends { [key: string]: unknown }>({
               allowClear
               value={search}
               onChange={e => { setSearch(e.target.value); setPage(1); }}
-              style={{ width: 260 }}
+              style={{ width: 260, borderRadius: 8 }}
             />
             {filters}
             <Button
               icon={<ReloadOutlined />}
               onClick={() => load()}
               title="Làm mới dữ liệu"
+              style={{ borderRadius: 8 }}
             />
           </Space>
 
@@ -191,7 +209,15 @@ export default function CrudPage<T extends { [key: string]: unknown }>({
             type="primary"
             icon={<PlusOutlined />}
             onClick={onAdd}
-            style={{ fontWeight: 600 }}
+            style={{
+              fontWeight: 600,
+              background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
+              border: 'none',
+              boxShadow: '0 3px 10px rgba(37,99,235,0.3)',
+              borderRadius: 8,
+              padding: '0 1.25rem',
+              height: 38,
+            }}
           >
             Thêm mới
           </Button>

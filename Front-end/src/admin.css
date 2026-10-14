@@ -178,3 +178,97 @@ tr:hover td { background: #f8fafc; }
   .section-planning-form { grid-template-columns: 1fr; }
   .section-planning-name, .section-planning-note { grid-column: auto; }
 }
+
+/* ─── Modern Colorful Admin Enhancements ────────────────────────────────── */
+/* Custom Scrollbars */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 999px; }
+::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+/* Ant Design Header reset */
+.ant-layout-header {
+  line-height: normal !important;
+}
+
+/* Ant Design Sider Menu styling */
+.ant-layout-sider .ant-menu {
+  padding: 0 10px !important;
+}
+
+.ant-layout-sider .ant-menu-item {
+  border-radius: 10px !important;
+  margin: 4px 0 !important;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  font-weight: 500;
+}
+
+.ant-layout-sider .ant-menu-item:hover:not(.ant-menu-item-selected) {
+  background: #f1f5f9 !important;
+  transform: translateX(3px);
+}
+
+.ant-layout-sider .ant-menu-item-selected {
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%) !important;
+  color: #ffffff !important;
+  font-weight: 700 !important;
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35) !important;
+}
+
+.ant-layout-sider .ant-menu-item-selected .ant-menu-item-icon,
+.ant-layout-sider .ant-menu-item-selected .ant-menu-title-content {
+  color: #ffffff !important;
+}
+
+.ant-layout-sider .ant-menu-item-group-title {
+  color: #64748b !important;
+  font-size: 0.68rem !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.08em !important;
+  padding: 1rem 0.5rem 0.25rem 0.75rem !important;
+  text-transform: uppercase;
+}
+
+/* Stat Card Hover & Animations */
+.stat-card-colorful {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  border-radius: 14px !important;
+  overflow: hidden;
+  position: relative;
+}
+
+.stat-card-colorful:hover {
+  transform: translateY(-5px) !important;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.12) !important;
+}
+
+/* Quick shortcut card */
+.quick-action-card {
+  transition: all 0.25s ease;
+  cursor: pointer;
+  border-radius: 12px !important;
+}
+
+.quick-action-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08) !important;
+  border-color: #2563eb !important;
+}
+
+/* Pulse indicator */
+.pulse-green {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #10b981;
+  box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+  animation: pulse-ring 2s infinite;
+}
+
+@keyframes pulse-ring {
+  0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+  70% { box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+}
+
