@@ -71,7 +71,7 @@ export interface TeacherScheduleDto {
   courseCode: string;
   courseName: string;
   scheduleId: number;
-  dayOfWeek: number; // 0=Sun,1=Mon,...6=Sat
+  dayOfWeek: number; // 2=Thứ Hai,...,8=Chủ Nhật
   startTime: string;
   endTime: string;
   room: string | null;
@@ -81,8 +81,25 @@ export interface TeacherScheduleDto {
   note: string | null;
 }
 
+export interface TeacherExamDto {
+  sectionId: number;
+  sectionCode: string;
+  courseCode: string;
+  courseName: string;
+  examId: number;
+  examName: string;
+  examType: number;
+  examDate: string;
+  startTime: string;
+  durationMinutes: number;
+  room: string | null;
+  note: string | null;
+  createdAt: string;
+}
+
 export interface TeacherSectionDetailDto extends TeacherSectionDto {
   schedules: TeacherScheduleDto[];
+  exams: TeacherExamDto[];
 }
 
 // ─── Students ────────────────────────────────────────────────────────────────
@@ -94,6 +111,26 @@ export interface TeacherSectionStudentDto {
   phone: string | null;
   enrollmentStatus: number;
 }
+
+export interface TeacherSectionStudentDetailDto {
+  studentId: number;
+  studentCode: string;
+  fullName: string;
+  email: string;
+  phone: string | null;
+  dateOfBirth: string | null;
+  gender: number | null;
+  avatarUrl: string | null;
+  classCode: string | null;
+  className: string | null;
+  majorCode: string;
+  majorName: string;
+  enrolledAt: string;
+  enrollmentStatus: number;
+  finalScore10: number | null;
+  letterGrade: string | null;
+}
+
 
 // ─── Assignments ─────────────────────────────────────────────────────────────
 export interface TeacherAssignmentDto {

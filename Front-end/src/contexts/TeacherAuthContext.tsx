@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
-import { api, setToken, clearToken, ApiError } from '../api/client';
+import { api, setTeacherToken, clearTeacherToken, ApiError } from '../api/client';
 import type { TeacherProfileDto } from '../api/teacher-types';
 
 interface TeacherAuthState {
@@ -7,6 +7,8 @@ interface TeacherAuthState {
   loading: boolean;
   login: (username: string, password: string) => Promise<void>;
   logout: () => void;
+  updateProfile: (updated: TeacherProfileDto) => void;
+  refreshProfile: () => Promise<TeacherProfileDto | null>;
 }
 
 const TeacherAuthContext = createContext<TeacherAuthState>(null!);
@@ -15,30 +17,60 @@ const TEACHER_TOKEN_KEY = 'teacher_token';
 const TEACHER_PROFILE_KEY = 'teacher_profile';
 
 export function TeacherAuthProvider({ children }: { children: ReactNode }) {
-  const [profile, setProfile] = useState<TeacherProfileDto | null>(null);
+  const [profile, setProfile] = useState<TeacherProfileDto | null>(() => {
+    const saved = localStorage.getItem(TEACHER_PROFILE_KEY);
+    if (!saved) return null;
+    try {
+      return JSON.parse(saved) as TeacherProfileDto;
+    } catch {
+      return null;
+    }
+  });
   const [loading, setLoading] = useState(true);
+
+  const refreshProfile = async (): Promise<TeacherProfileDto | null> => {
+    const saved = localStorage.getItem(TEACHER_PROFILE_KEY);
+    if (!saved) return null;
+    try {
+      const p = JSON.parse(saved) as TeacherProfileDto;
+      const fresh = await api.get<TeacherProfileDto>(`/api/teachers/${p.teacherId}/profile`);
+      setProfile(fresh);
+      localStorage.setItem(TEACHER_PROFILE_KEY, JSON.stringify(fresh));
+      return fresh;
+    } catch {
+      return null;
+    }
+  };
+
+  const updateProfile = (updated: TeacherProfileDto) => {
+    setProfile(updated);
+    localStorage.setItem(TEACHER_PROFILE_KEY, JSON.stringify(updated));
+  };
 
   useEffect(() => {
     const token = localStorage.getItem(TEACHER_TOKEN_KEY);
     const saved = localStorage.getItem(TEACHER_PROFILE_KEY);
     if (!token || !saved) { setLoading(false); return; }
 
-    // Restore token for the api client & validate
-    setToken(token);
-    const p = JSON.parse(saved) as TeacherProfileDto;
+    try {
+      const p = JSON.parse(saved) as TeacherProfileDto;
+      setProfile(p);
 
-    api.get<TeacherProfileDto>(`/api/teachers/${p.teacherId}/profile`)
-      .then(fresh => { setProfile(fresh); localStorage.setItem(TEACHER_PROFILE_KEY, JSON.stringify(fresh)); })
-      .catch((e: ApiError) => {
-        if (e.status === 401 || e.status === 403) {
-          localStorage.removeItem(TEACHER_TOKEN_KEY);
-          clearToken();
-        } else {
-          // network error – restore from cache
-          setProfile(p);
-        }
-      })
-      .finally(() => setLoading(false));
+      api.get<TeacherProfileDto>(`/api/teachers/${p.teacherId}/profile`)
+        .then(fresh => {
+          setProfile(fresh);
+          localStorage.setItem(TEACHER_PROFILE_KEY, JSON.stringify(fresh));
+        })
+        .catch((e: ApiError) => {
+          if (e.status === 401 || e.status === 403) {
+            clearTeacherToken();
+            setProfile(null);
+          }
+        })
+        .finally(() => setLoading(false));
+    } catch {
+      setLoading(false);
+    }
   }, []);
 
   const login = async (username: string, password: string) => {
@@ -57,8 +89,7 @@ export function TeacherAuthProvider({ children }: { children: ReactNode }) {
       throw new Error('TEACHER_PROFILE_NOT_FOUND');
     }
 
-    setToken(res.token);
-    localStorage.setItem(TEACHER_TOKEN_KEY, res.token);
+    setTeacherToken(res.token);
 
     const p = await api.get<TeacherProfileDto>(`/api/teachers/${res.teacherId}/profile`);
     setProfile(p);
@@ -66,14 +97,12 @@ export function TeacherAuthProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = () => {
-    localStorage.removeItem(TEACHER_TOKEN_KEY);
-    localStorage.removeItem(TEACHER_PROFILE_KEY);
-    clearToken();
+    clearTeacherToken();
     setProfile(null);
   };
 
   return (
-    <TeacherAuthContext.Provider value={{ profile, loading, login, logout }}>
+    <TeacherAuthContext.Provider value={{ profile, loading, login, logout, updateProfile, refreshProfile }}>
       {children}
     </TeacherAuthContext.Provider>
   );
@@ -82,3 +111,4 @@ export function TeacherAuthProvider({ children }: { children: ReactNode }) {
 export function useTeacherAuth() {
   return useContext(TeacherAuthContext);
 }
+

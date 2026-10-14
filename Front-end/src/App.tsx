@@ -1,8 +1,11 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { ConfigProvider, App as AntdApp } from 'antd';
+import viVN from 'antd/locale/vi_VN';
 import { AuthProvider } from './contexts/AuthContext';
 import { TeacherAuthProvider } from './contexts/TeacherAuthContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { ProtectedTeacherRoute } from './components/ProtectedTeacherRoute';
+
 
 // Admin
 import AdminLayout from './layouts/AdminLayout';
@@ -36,69 +39,83 @@ import './teacher.css';
 
 export default function App() {
   return (
-    <BrowserRouter>
-      {/* ── ADMIN ROUTES ─────────────────────────────────────────────── */}
-      <Routes>
-        <Route path="/admin/login" element={
-          <AuthProvider>
-            <LoginPage />
-          </AuthProvider>
-        } />
-        <Route path="/admin/*" element={
-          <AuthProvider>
-            <Routes>
-              <Route path="*" element={
-                <ProtectedRoute>
-                  <AdminLayout />
-                </ProtectedRoute>
-              }>
-                <Route index element={<DashboardPage />} />
-                <Route path="users" element={<UsersPage />} />
-                <Route path="teachers" element={<TeachersPage />} />
-                <Route path="students" element={<StudentsPage />} />
-                <Route path="departments" element={<DepartmentsPage />} />
-                <Route path="majors" element={<MajorsPage />} />
-                <Route path="academic-classes" element={<AcademicClassesPage />} />
-                <Route path="courses" element={<CoursesPage />} />
-                <Route path="semesters" element={<SemestersPage />} />
-                <Route path="course-sections" element={<CourseSectionsPage />} />
-              </Route>
-            </Routes>
-          </AuthProvider>
-        } />
+    <ConfigProvider
+      locale={viVN}
+      theme={{
+        token: {
+          colorPrimary: '#2563eb',
+          borderRadius: 8,
+          fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
+        },
+      }}
+    >
+      <AntdApp>
+        <BrowserRouter>
+          {/* ── ADMIN ROUTES ─────────────────────────────────────────────── */}
+          <Routes>
+            <Route path="/admin/login" element={
+              <AuthProvider>
+                <LoginPage />
+              </AuthProvider>
+            } />
+            <Route path="/admin/*" element={
+              <AuthProvider>
+                <Routes>
+                  <Route path="*" element={
+                    <ProtectedRoute>
+                      <AdminLayout />
+                    </ProtectedRoute>
+                  }>
+                    <Route index element={<DashboardPage />} />
+                    <Route path="users" element={<UsersPage />} />
+                    <Route path="teachers" element={<TeachersPage />} />
+                    <Route path="students" element={<StudentsPage />} />
+                    <Route path="departments" element={<DepartmentsPage />} />
+                    <Route path="majors" element={<MajorsPage />} />
+                    <Route path="academic-classes" element={<AcademicClassesPage />} />
+                    <Route path="courses" element={<CoursesPage />} />
+                    <Route path="semesters" element={<SemestersPage />} />
+                    <Route path="course-sections" element={<CourseSectionsPage />} />
+                  </Route>
+                </Routes>
+              </AuthProvider>
+            } />
 
-        {/* ── TEACHER ROUTES ───────────────────────────────────────────── */}
-        <Route path="/teacher/login" element={
-          <TeacherAuthProvider>
-            <TeacherLoginPage />
-          </TeacherAuthProvider>
-        } />
-        <Route path="/teacher/*" element={
-          <TeacherAuthProvider>
-            <Routes>
-              <Route path="*" element={
-                <ProtectedTeacherRoute>
-                  <TeacherLayout />
-                </ProtectedTeacherRoute>
-              }>
-                <Route index element={<TeacherDashboard />} />
-                <Route path="sections" element={<TeacherSectionsPage />} />
-                <Route path="sections/:sectionId" element={<TeacherSectionDetailPage />} />
-                <Route path="schedule" element={<TeacherSchedulePage />} />
-                <Route path="assignments" element={<TeacherAssignmentsPage />} />
-                <Route path="materials" element={<TeacherMaterialsPage />} />
-                <Route path="grades" element={<TeacherGradesPage />} />
-                <Route path="announcements" element={<TeacherAnnouncementsPage />} />
-                <Route path="profile" element={<TeacherProfilePage />} />
-              </Route>
-            </Routes>
-          </TeacherAuthProvider>
-        } />
+            {/* ── TEACHER ROUTES ───────────────────────────────────────────── */}
+            <Route path="/teacher/login" element={
+              <TeacherAuthProvider>
+                <TeacherLoginPage />
+              </TeacherAuthProvider>
+            } />
+            <Route path="/teacher/*" element={
+              <TeacherAuthProvider>
+                <Routes>
+                  <Route path="*" element={
+                    <ProtectedTeacherRoute>
+                      <TeacherLayout />
+                    </ProtectedTeacherRoute>
+                  }>
+                    <Route index element={<TeacherDashboard />} />
+                    <Route path="sections" element={<TeacherSectionsPage />} />
+                    <Route path="sections/:sectionId" element={<TeacherSectionDetailPage />} />
+                    <Route path="schedule" element={<TeacherSchedulePage />} />
+                    <Route path="assignments" element={<TeacherAssignmentsPage />} />
+                    <Route path="materials" element={<TeacherMaterialsPage />} />
+                    <Route path="grades" element={<TeacherGradesPage />} />
+                    <Route path="announcements" element={<TeacherAnnouncementsPage />} />
+                    <Route path="profile" element={<TeacherProfilePage />} />
+                  </Route>
+                </Routes>
+              </TeacherAuthProvider>
+            } />
 
-        {/* Default redirect */}
-        <Route path="/" element={<Navigate to="/admin" replace />} />
-        <Route path="*" element={<Navigate to="/admin" replace />} />
-      </Routes>
-    </BrowserRouter>
+            {/* Default redirect */}
+            <Route path="/" element={<Navigate to="/admin" replace />} />
+            <Route path="*" element={<Navigate to="/admin" replace />} />
+          </Routes>
+        </BrowserRouter>
+      </AntdApp>
+    </ConfigProvider>
   );
 }
+

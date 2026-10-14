@@ -1,8 +1,8 @@
 import { api } from './client';
 import type {
   TeacherProfileDto, UpdateTeacherProfileRequest,
-  TeacherSectionDto, TeacherSectionDetailDto, TeacherScheduleDto,
-  TeacherSectionStudentDto,
+  TeacherSectionDto, TeacherSectionDetailDto, TeacherScheduleDto, TeacherExamDto,
+  TeacherSectionStudentDto, TeacherSectionStudentDetailDto,
   TeacherAssignmentDto, CreateAssignmentRequest, UpdateAssignmentRequest,
   TeacherSubmissionDto, GradeSubmissionRequest,
   TeacherMaterialDto, CreateMaterialRequest, UpdateMaterialRequest,
@@ -40,12 +40,22 @@ export const teacherSectionsApi = {
     if (params?.sectionId !== undefined) q.set('sectionId', String(params.sectionId));
     return api.get<TeacherScheduleDto[]>(`${base(tid)}/schedule?${q}`);
   },
+  exams: (tid: number, params?: { from?: string; to?: string; sectionId?: number; examType?: number }) => {
+    const q = new URLSearchParams();
+    if (params?.from) q.set('from', params.from);
+    if (params?.to) q.set('to', params.to);
+    if (params?.sectionId !== undefined) q.set('sectionId', String(params.sectionId));
+    if (params?.examType !== undefined) q.set('examType', String(params.examType));
+    return api.get<TeacherExamDto[]>(`${base(tid)}/exams?${q}`);
+  },
 };
 
 // ─── Students ────────────────────────────────────────────────────────────────
 export const teacherStudentsApi = {
   list: (tid: number, sid: number) =>
     api.get<TeacherSectionStudentDto[]>(`${sec(tid, sid)}/students`),
+  get: (tid: number, sid: number, studentId: number) =>
+    api.get<TeacherSectionStudentDetailDto>(`${sec(tid, sid)}/students/${studentId}`),
 };
 
 // ─── Assignments ─────────────────────────────────────────────────────────────
